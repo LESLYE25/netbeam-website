@@ -8,6 +8,22 @@ if (!isset($_SESSION['usuario_id'])) {
     exit();
 }
 
+// VERIFICAR SI EL USUARIO TIENE PREFERENCIAS CONFIGURADAS
+$usuario_id = $_SESSION['usuario_id'];
+$sql_verificar_preferencias = "SELECT COUNT(*) as total FROM preferencias WHERE usuario_id = ?";
+$stmt_verificar = $conn->prepare($sql_verificar_preferencias);
+$stmt_verificar->bind_param("i", $usuario_id);
+$stmt_verificar->execute();
+$result_verificar = $stmt_verificar->get_result();
+$preferencias_count = $result_verificar->fetch_assoc()['total'];
+$stmt_verificar->close();
+
+// Si el usuario no tiene preferencias, redirigir a la página de configuración
+if ($preferencias_count == 0) {
+    header("Location: preferencias.php");
+    exit();
+}
+
 // Si se solicita cambiar de usuario
 if (isset($_POST['cambiar_usuario'])) {
     $nuevo_usuario_id = $_POST['usuario_id'];
@@ -61,6 +77,40 @@ if (isset($_POST['accion_lista'])) {
     exit();
 }
 
+// Sistema de valoraciones (Me gusta/No me gusta)
+if (isset($_POST['valorar_pelicula'])) {
+    $pelicula_id = $_POST['pelicula_id'];
+    $valoracion = $_POST['valoracion']; // 'like' o 'dislike'
+    $usuario_id = $_SESSION['usuario_id'];
+    
+    // Verificar si ya existe una valoración
+    $sql_verificar = "SELECT id FROM valoraciones WHERE usuario_id = ? AND pelicula_id = ?";
+    $stmt_verificar = $conn->prepare($sql_verificar);
+    $stmt_verificar->bind_param("ii", $usuario_id, $pelicula_id);
+    $stmt_verificar->execute();
+    $result_verificar = $stmt_verificar->get_result();
+    
+    if ($result_verificar->num_rows > 0) {
+        // Actualizar valoración existente
+        $sql_actualizar = "UPDATE valoraciones SET valoracion = ? WHERE usuario_id = ? AND pelicula_id = ?";
+        $stmt_actualizar = $conn->prepare($sql_actualizar);
+        $stmt_actualizar->bind_param("sii", $valoracion, $usuario_id, $pelicula_id);
+        $stmt_actualizar->execute();
+        $stmt_actualizar->close();
+    } else {
+        // Insertar nueva valoración
+        $sql_insertar = "INSERT INTO valoraciones (usuario_id, pelicula_id, valoracion) VALUES (?, ?, ?)";
+        $stmt_insertar = $conn->prepare($sql_insertar);
+        $stmt_insertar->bind_param("iis", $usuario_id, $pelicula_id, $valoracion);
+        $stmt_insertar->execute();
+        $stmt_insertar->close();
+    }
+    $stmt_verificar->close();
+    
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
 $usuario_id = $_SESSION['usuario_id'];
 
 // Obtener información del usuario actual
@@ -100,6 +150,30 @@ $peliculas_en_lista = [];
 foreach($mi_lista as $pelicula) {
     $peliculas_en_lista[$pelicula['id']] = true;
 }
+
+// Obtener valoraciones del usuario actual
+$sql_valoraciones = "SELECT pelicula_id, valoracion FROM valoraciones WHERE usuario_id = ?";
+$stmt_valoraciones = $conn->prepare($sql_valoraciones);
+$stmt_valoraciones->bind_param("i", $usuario_id);
+$stmt_valoraciones->execute();
+$result_valoraciones = $stmt_valoraciones->get_result();
+$valoraciones_usuario = [];
+while ($row = $result_valoraciones->fetch_assoc()) {
+    $valoraciones_usuario[$row['pelicula_id']] = $row['valoracion'];
+}
+$stmt_valoraciones->close();
+
+// Obtener películas más populares (con más "me gusta")
+$sql_populares = "SELECT p.*, 
+                 COUNT(CASE WHEN v.valoracion = 'like' THEN 1 END) as likes,
+                 COUNT(CASE WHEN v.valoracion = 'dislike' THEN 1 END) as dislikes
+                 FROM peliculas p 
+                 LEFT JOIN valoraciones v ON p.id = v.pelicula_id 
+                 GROUP BY p.id 
+                 ORDER BY likes DESC 
+                 LIMIT 10";
+$result_populares = $conn->query($sql_populares);
+$peliculas_populares = $result_populares->fetch_all(MYSQLI_ASSOC);
 
 // Recomendaciones basadas en las preferencias
 $peliculas_filtradas = [];
@@ -472,7 +546,7 @@ header img.logo {
     background: var(--netbeam-red);
 }
 
-/* MODAL DE PELÍCULA */
+/* MODAL DE PELÍCULA - MÁS ALTO Y MENOS ANCHO */
 .modal {
     display: none;
     position: fixed;
@@ -484,25 +558,28 @@ header img.logo {
     z-index: 2000;
     justify-content: center;
     align-items: center;
+    padding: 20px;
 }
 
 .modal-content {
     background-color: var(--netbeam-dark);
-    border-radius: 6px;
+    border-radius: 10px;
     width: 90%;
-    max-width: 800px;
+    max-width: 600px; /* Menos ancho */
     max-height: 90vh;
-    overflow: hidden;
+    overflow-y: auto;
     position: relative;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 .modal-header {
-    height: 40vh;
-    min-height: 300px;
+    height: 400px; /* Más alto */
+    min-height: 400px;
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     position: relative;
 }
 
@@ -512,7 +589,7 @@ header img.logo {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 100px;
+    height: 150px;
     background: linear-gradient(to top, var(--netbeam-dark), transparent);
 }
 
@@ -522,16 +599,21 @@ header img.logo {
     right: 15px;
     background: var(--netbeam-dark);
     border-radius: 50%;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 10;
-    font-size: 20px;
+    font-size: 24px;
     border: none;
     color: white;
+    transition: background 0.3s;
+}
+
+.modal-close:hover {
+    background: #333;
 }
 
 .modal-body {
@@ -542,8 +624,9 @@ header img.logo {
 }
 
 .modal-title {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     margin-bottom: 15px;
+    font-weight: bold;
 }
 
 .modal-details {
@@ -551,28 +634,45 @@ header img.logo {
     gap: 15px;
     margin-bottom: 20px;
     color: var(--netbeam-light-gray);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.rating-badge {
+    background: var(--netbeam-red);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .modal-description {
-    font-size: 1.1rem;
-    line-height: 1.5;
-    margin-bottom: 20px;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    color: #ccc;
 }
 
 .modal-buttons {
     display: flex;
     gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
 }
 
 .modal-lista-btn {
     background: transparent;
     border: 2px solid var(--netbeam-light-gray);
     color: var(--netbeam-white);
-    padding: 8px 15px;
+    padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s;
     font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .modal-lista-btn.en-lista {
@@ -583,6 +683,102 @@ header img.logo {
 .modal-lista-btn:hover {
     background: var(--netbeam-red);
     border-color: var(--netbeam-red);
+}
+
+.valoracion-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-like, .btn-dislike {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-like.active {
+    background: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.btn-dislike.active {
+    background: #f44336;
+    border-color: #f44336;
+}
+
+.btn-like:hover {
+    background: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.btn-dislike:hover {
+    background: #f44336;
+    border-color: #f44336;
+}
+
+/* Sección de recomendaciones en el modal */
+.modal-recommendations {
+    margin-top: 20px;
+    border-top: 1px solid #333;
+    padding-top: 20px;
+}
+
+.modal-recommendations h3 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: var(--netbeam-white);
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.recommendation-card {
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.recommendation-card:hover {
+    transform: scale(1.05);
+}
+
+.recommendation-card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+/* Estrellas de valoración */
+.star-rating {
+    display: flex;
+    gap: 2px;
+    margin: 10px 0;
+}
+
+.star {
+    color: #666;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star.active {
+    color: #ffd700;
+}
+
+.star:hover {
+    color: #ffd700;
 }
 
 /* Modal de cambio de usuario */
@@ -688,10 +884,20 @@ header img.logo {
     
     .modal-content {
         width: 95%;
+        max-width: 500px;
+    }
+    
+    .modal-header {
+        height: 300px;
+        min-height: 300px;
     }
     
     .modal-title {
         font-size: 1.8rem;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
     }
     
     .user-dropdown {
@@ -747,7 +953,7 @@ header img.logo {
         <a href="#" id="miListaLink">Mi lista</a>
     </div>
     <div class="usuario-menu">
-        <div class="usuario" onclick="toggleUserMenu()">
+        <div class="usuario" onclick="toggleUserMenu(event)">
             <div class="usuario-avatar"><?= substr($usuario['nombre'], 0, 1) ?></div>
             <?= $usuario['nombre'] ?>
             <?php if(count($preferencias) > 0): ?>
@@ -792,7 +998,7 @@ header img.logo {
     <h2 class="section-title">Mi Lista 💖</h2>
     <div class="row" id="miListaRow">
         <?php foreach($mi_lista as $p): ?>
-            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>)">
+            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>, event)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
                 <button class="lista-btn en-lista" onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" title="Quitar de Mi Lista">✓</button>
                 <div class="card-overlay">
@@ -816,12 +1022,37 @@ header img.logo {
 </div>
 <?php endif; ?>
 
+<!-- PELÍCULAS POPULARES -->
+<?php if(count($peliculas_populares) > 0): ?>
+<div class="section">
+    <h2 class="section-title">🔥 Más populares</h2>
+    <div class="row">
+        <?php foreach($peliculas_populares as $p): ?>
+            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
+                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
+                        onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
+                        title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
+                    <?= isset($peliculas_en_lista[$p['id']]) ? '✓' : '+' ?>
+                </button>
+                <div class="card-overlay">
+                    <div class="card-title"><?= $p['titulo'] ?></div>
+                    <div class="card-details">
+                        <span>👍 <?= $p['likes'] ?? 0 ?></span>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if(count($peliculas_filtradas) > 0): ?>
 <div class="section">
-    <h2 class="section-title">Recomendaciones para ti 🍿</h2>
+    <h2 class="section-title">Para ti 🍿 (Basado en tus preferencias)</h2>
     <div class="row">
         <?php foreach($peliculas_filtradas as $p): ?>
-            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>)">
+            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
@@ -850,7 +1081,7 @@ header img.logo {
     <h2 class="section-title"><?= $gen ?></h2>
     <div class="row">
         <?php foreach($peliculas as $p): ?>
-            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>)">
+            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
@@ -878,9 +1109,37 @@ header img.logo {
             <h2 class="modal-title" id="modalTitle"></h2>
             <div class="modal-details" id="modalDetails"></div>
             <p class="modal-description" id="modalDescription"></p>
+            
             <div class="modal-buttons">
                 <button class="btn btn-primary">▶ Reproducir</button>
-                <button class="modal-lista-btn" id="modalListaBtn">+ Mi lista</button>
+                <button class="modal-lista-btn" id="modalListaBtn">
+                    <span id="listaIcon">+</span> Mi lista
+                </button>
+                <div class="valoracion-buttons">
+                    <button class="btn-like" id="btnLike">
+                        <span>👍</span> Me gusta
+                    </button>
+                    <button class="btn-dislike" id="btnDislike">
+                        <span>👎</span> No me gusta
+                    </button>
+                </div>
+            </div>
+
+            <!-- Valoración con estrellas -->
+            <div class="star-rating" id="starRating">
+                <span class="star" data-rating="1">★</span>
+                <span class="star" data-rating="2">★</span>
+                <span class="star" data-rating="3">★</span>
+                <span class="star" data-rating="4">★</span>
+                <span class="star" data-rating="5">★</span>
+            </div>
+
+            <!-- Recomendaciones similares -->
+            <div class="modal-recommendations">
+                <h3>🎬 También te puede gustar</h3>
+                <div class="recommendations-grid" id="recommendationsGrid">
+                    <!-- Las recomendaciones se cargan dinámicamente -->
+                </div>
             </div>
         </div>
     </div>
@@ -934,9 +1193,12 @@ window.addEventListener('scroll', function() {
 
 // Variable global para la película actual en el modal
 let peliculaActual = null;
+let modalAbierto = false;
 
 // Función para agregar/eliminar de Mi Lista
-function toggleLista(peliculaId, boton) {
+function toggleLista(peliculaId, boton, event) {
+    if (event) event.stopPropagation();
+    
     const formData = new FormData();
     formData.append('pelicula_id', peliculaId);
     
@@ -956,6 +1218,33 @@ function toggleLista(peliculaId, boton) {
     });
 }
 
+// Función para valorar película
+function valorarPelicula(peliculaId, valoracion) {
+    const formData = new FormData();
+    formData.append('pelicula_id', peliculaId);
+    formData.append('valoracion', valoracion);
+    formData.append('valorar_pelicula', 'true');
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            // Actualizar la interfaz sin recargar
+            const btnLike = document.getElementById('btnLike');
+            const btnDislike = document.getElementById('btnDislike');
+            
+            if (valoracion === 'like') {
+                btnLike.classList.add('active');
+                btnDislike.classList.remove('active');
+            } else {
+                btnDislike.classList.add('active');
+                btnLike.classList.remove('active');
+            }
+        }
+    });
+}
+
 // Navegación a Mi Lista
 document.getElementById('miListaLink').addEventListener('click', function(e) {
     e.preventDefault();
@@ -963,8 +1252,16 @@ document.getElementById('miListaLink').addEventListener('click', function(e) {
 });
 
 // Función para abrir el modal de película
-function openModal(movie) {
+function openModal(movie, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log('Abriendo modal para:', movie.titulo);
+    
     peliculaActual = movie;
+    modalAbierto = true;
     
     const modal = document.getElementById('movieModal');
     const modalHeader = document.getElementById('modalHeader');
@@ -981,49 +1278,111 @@ function openModal(movie) {
     
     // Establecer detalles
     modalDetails.innerHTML = `
-        <span>${movie.genero}</span>
-        <span>${movie.anio || ''}</span>
-        <span>${movie.duracion || ''}</span>
+        <span class="rating-badge">${movie.genero}</span>
+        <span>${movie.likes ? `👍 ${movie.likes}` : ''}</span>
+        <span>⭐ ${(Math.random() * 2 + 3).toFixed(1)}/5</span>
     `;
     
     // Establecer descripción
     modalDescription.textContent = movie.descripcion || 
-        `Disfruta de "${movie.titulo}", una película del género ${movie.genero} que te mantendrá en el borde de tu asiento.`;
+        `"${movie.titulo}" es una emocionante película del género ${movie.genero} que te mantendrá al borde de tu asiento. Con una trama envolvente y actuaciones memorables, esta producción promete horas de entretenimiento.`;
     
     // Configurar botón de Mi Lista en el modal
     if (movie.enLista) {
-        modalListaBtn.textContent = '✓ En Mi Lista';
+        modalListaBtn.innerHTML = '<span>✓</span> En Mi Lista';
         modalListaBtn.classList.add('en-lista');
     } else {
-        modalListaBtn.textContent = '+ Mi lista';
+        modalListaBtn.innerHTML = '<span>+</span> Mi lista';
         modalListaBtn.classList.remove('en-lista');
     }
+    
+    // Configurar botones de valoración
+    const btnLike = document.getElementById('btnLike');
+    const btnDislike = document.getElementById('btnDislike');
+    btnLike.classList.remove('active');
+    btnDislike.classList.remove('active');
+    
+    // Cargar recomendaciones similares
+    cargarRecomendaciones(movie.genero, movie.id);
     
     // Mostrar el modal
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    
+    // Agregar clase para animación de entrada
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
+}
+
+// Función para cargar recomendaciones similares
+function cargarRecomendaciones(genero, peliculaIdActual) {
+    const recommendationsGrid = document.getElementById('recommendationsGrid');
+    recommendationsGrid.innerHTML = '<p>Cargando recomendaciones...</p>';
+    
+    // Simular carga de recomendaciones del mismo género
+    setTimeout(() => {
+        // Filtrar películas del mismo género (excluyendo la actual)
+        const peliculasMismoGenero = <?= json_encode($peliculas_por_genero) ?>[genero] || [];
+        const recomendaciones = peliculasMismoGenero
+            .filter(p => p.id != peliculaIdActual)
+            .slice(0, 6);
+        
+        if (recomendaciones.length > 0) {
+            recommendationsGrid.innerHTML = recomendaciones.map(pelicula => `
+                <div class="recommendation-card" onclick="openModal(${JSON.stringify(pelicula).replace(/"/g, '&quot;')}, event)">
+                    <img src="${pelicula.imagen}" alt="${pelicula.titulo}">
+                </div>
+            `).join('');
+        } else {
+            recommendationsGrid.innerHTML = '<p>No hay recomendaciones disponibles</p>';
+        }
+    }, 500);
 }
 
 // Función para cerrar el modal de película
 function closeModal() {
+    console.log('Cerrando modal');
+    
     const modal = document.getElementById('movieModal');
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-    peliculaActual = null;
+    modal.classList.remove('active');
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        peliculaActual = null;
+        modalAbierto = false;
+        
+        // Limpiar las estrellas
+        document.querySelectorAll('.star').forEach(star => {
+            star.classList.remove('active');
+        });
+    }, 300);
 }
 
+// Configurar el botón de cerrar modal
+document.querySelector('.modal-close').addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeModal();
+});
+
 // Cerrar modal al hacer clic fuera del contenido
-window.addEventListener('click', function(event) {
-    const modal = document.getElementById('movieModal');
-    if (event.target === modal) {
+document.getElementById('movieModal').addEventListener('click', function(event) {
+    if (event.target === this) {
         closeModal();
     }
 });
 
+// Prevenir que el clic dentro del modal lo cierre
+document.querySelector('.modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
+});
+
 // Configurar botón de lista en el modal
-document.getElementById('modalListaBtn').addEventListener('click', function() {
+document.getElementById('modalListaBtn').addEventListener('click', function(event) {
+    event.stopPropagation();
+    
     if (peliculaActual) {
-        // Simular click en el botón de lista
         const formData = new FormData();
         formData.append('pelicula_id', peliculaActual.id);
         
@@ -1044,8 +1403,48 @@ document.getElementById('modalListaBtn').addEventListener('click', function() {
     }
 });
 
+// Configurar botones de valoración
+document.getElementById('btnLike').addEventListener('click', function(event) {
+    event.stopPropagation();
+    
+    if (peliculaActual) {
+        valorarPelicula(peliculaActual.id, 'like');
+    }
+});
+
+document.getElementById('btnDislike').addEventListener('click', function(event) {
+    event.stopPropagation();
+    
+    if (peliculaActual) {
+        valorarPelicula(peliculaActual.id, 'dislike');
+    }
+});
+
+// Sistema de estrellas
+document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', function(event) {
+        event.stopPropagation();
+        
+        const rating = this.getAttribute('data-rating');
+        const stars = document.querySelectorAll('.star');
+        
+        stars.forEach((s, index) => {
+            if (index < rating) {
+                s.classList.add('active');
+            } else {
+                s.classList.remove('active');
+            }
+        });
+        
+        // Aquí podrías guardar la valoración en la base de datos
+        console.log(`Valoración: ${rating} estrellas para ${peliculaActual.titulo}`);
+    });
+});
+
 // Menú desplegable del usuario
-function toggleUserMenu() {
+function toggleUserMenu(event) {
+    if (event) event.stopPropagation();
+    
     const dropdown = document.getElementById('userDropdown');
     dropdown.classList.toggle('active');
 }
@@ -1053,9 +1452,7 @@ function toggleUserMenu() {
 // Cerrar menú desplegable al hacer clic fuera
 document.addEventListener('click', function(event) {
     const dropdown = document.getElementById('userDropdown');
-    const userMenu = document.querySelector('.usuario');
-    
-    if (!userMenu.contains(event.target) && !dropdown.contains(event.target)) {
+    if (!event.target.closest('.usuario-menu')) {
         dropdown.classList.remove('active');
     }
 });
@@ -1077,11 +1474,21 @@ function closeUserModal() {
 }
 
 // Cerrar modal de usuario al hacer clic fuera
-window.addEventListener('click', function(event) {
-    const modal = document.getElementById('userModal');
-    if (event.target === modal) {
+document.getElementById('userModal').addEventListener('click', function(event) {
+    if (event.target === this) {
         closeUserModal();
     }
+});
+
+// Prevenir que el clic dentro del modal de usuario lo cierre
+document.querySelector('.user-modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
+});
+
+// Configurar botón de cancelar en modal de usuario
+document.querySelector('.user-modal-content .btn-secondary').addEventListener('click', function(event) {
+    event.stopPropagation();
+    closeUserModal();
 });
 
 // Función para gestionar perfiles
@@ -1091,9 +1498,57 @@ function manageProfiles() {
 
 // Función para cerrar sesión
 function logout() {
-    window.location.href = "logout.php";
+    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+        window.location.href = "logout.php";
+    }
     document.getElementById('userDropdown').classList.remove('active');
 }
+
+// Inicializar eventos cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar event listener para la tecla Escape
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modalAbierto) {
+            closeModal();
+        }
+        if (event.key === 'Escape' && document.getElementById('userModal').style.display === 'flex') {
+            closeUserModal();
+        }
+    });
+    
+    // Agregar event listeners a todas las cards de películas (como respaldo)
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('click', function(event) {
+            // Solo actuar si el clic no fue en el botón de lista
+            if (!event.target.closest('.lista-btn')) {
+                const movieData = this.getAttribute('data-movie');
+                if (movieData) {
+                    openModal(JSON.parse(movieData), event);
+                }
+            }
+        });
+    });
+    
+    // Agregar data-movie attribute a todas las cards como respaldo
+    document.querySelectorAll('.card').forEach(card => {
+        const onclickAttr = card.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes('openModal')) {
+            // Extraer el JSON del onclick
+            const match = onclickAttr.match(/openModal\(({[^}]+})/);
+            if (match) {
+                card.setAttribute('data-movie', match[1]);
+            }
+        }
+    });
+});
+
+// Función auxiliar para prevenir clics en botones de lista
+document.addEventListener('click', function(event) {
+    if (event.target.closest('.lista-btn')) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+});
 </script>
 
 </body>
