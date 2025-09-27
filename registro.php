@@ -17,7 +17,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($stmt->execute()) {
         echo "<script>alert('✅ Registro exitoso. Ya puedes iniciar sesión'); window.location='login.php';</script>";
-        exit; // cortar ejecución para que no se muestre el form otra vez
+        exit;
     } else {
         echo "<script>alert('❌ Error: " . $stmt->error . "');</script>";
     }

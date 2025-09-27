@@ -37,13 +37,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Iniciar sesión</title>
     <link rel="stylesheet" href="./css/cuenta.css" />
-    <link rel="shortcut icon" type="image/jpg" href="img/netflix-flavicon.png" />
+    <link rel="shortcut icon" type="image/jpg" href="img/image2.png" />
 
   </head>
   <body>
     <div class="contenido">
       <nav>
-        <img class="logo" src="./img/logo.png" alt="netflixLogo" />
+        <img class="logo" src="./img/logo.png" alt="netbeamLogo" />
       </nav>
       <div class="caja">
         <h2>Iniciar sesión</h2>
@@ -73,7 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
         <div class="subscripcion">
-          <p>¿Todavía sin Netflix? 
+          <p>¿Todavía sin Netbeam? 
             <a href="registro.php"><span>Registrate ya.</span></a>
           </p>
         </div>

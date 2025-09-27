@@ -143,7 +143,7 @@ $stmt_usuarios->close();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tu Netflix 🎬</title>
+<title>Tu Netbeam 🎬</title>
 <style>
 :root {
     --netflix-red: #e50914;
