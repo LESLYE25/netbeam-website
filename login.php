@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <body>
     <div class="contenido">
       <nav>
-        <img class="logo" src="./img/logo.png" alt="netbeamLogo" />
+        <img class="logo" src="./img/image2.png" alt="netbeamLogo" />
       </nav>
       <div class="caja">
         <h2>Iniciar sesión</h2>
@@ -66,12 +66,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </form>
         <!-- /FORMULARIO -->
 
-        <div class="checkbox">
-          <div class="recordar">
-            <input type="checkbox" id="checkbox1"/>
-            <label for="checkbox1">Recuérdame</label>
-          </div>
-        </div>
         <div class="subscripcion">
           <p>¿Todavía sin Netbeam? 
             <a href="registro.php"><span>Registrate ya.</span></a>

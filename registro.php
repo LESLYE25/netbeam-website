@@ -37,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 <div class="contenido">
     <nav>
-        <img class="logo" src="./img/logo.png" alt="netflixLogo" />
+        <img class="logo" src="./img/image2.png" alt="netbeamLogo" />
     </nav>
     <div class="caja">
         <h2>Registrarse</h2>
@@ -50,12 +50,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <button type="submit">Crear</button>
         </form>
 
-        <div class="checkbox">
-            <div class="recordar">
-                <input type="checkbox" id="checkbox1" />
-                <label for="checkbox1">Recuérdame</label>
-            </div>
-        </div>
     </div>
 </div>
 

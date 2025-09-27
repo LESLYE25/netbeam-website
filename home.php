@@ -146,11 +146,11 @@ $stmt_usuarios->close();
 <title>Tu Netbeam 🎬</title>
 <style>
 :root {
-    --netflix-red: #e50914;
-    --netflix-dark: #141414;
-    --netflix-gray: #2f2f2f;
-    --netflix-light-gray: #b3b3b3;
-    --netflix-white: #ffffff;
+    --netbeam-red: #e50914;
+    --netbeam-dark: #141414;
+    --netbeam-gray: #2f2f2f;
+    --netbeam-light-gray: #b3b3b3;
+    --netbeam-white: #ffffff;
 }
 
 * {
@@ -158,8 +158,8 @@ $stmt_usuarios->close();
 }
 
 body {
-    background: var(--netflix-dark);
-    color: var(--netflix-white);
+    background: var(--netbeam-dark);
+    color: var(--netbeam-white);
     font-family: 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 0;
@@ -182,7 +182,7 @@ header {
 }
 
 header.scrolled {
-    background-color: var(--netflix-dark);
+    background-color: var(--netbeam-dark);
 }
 
 header img.logo {
@@ -195,18 +195,18 @@ header img.logo {
 }
 
 .nav-links a {
-    color: var(--netflix-white);
+    color: var(--netbeam-white);
     text-decoration: none;
     font-size: 14px;
     transition: color 0.3s;
 }
 
 .nav-links a:hover {
-    color: var(--netflix-light-gray);
+    color: var(--netbeam-light-gray);
 }
 
 .nav-links a.active {
-    color: var(--netflix-white);
+    color: var(--netbeam-white);
     font-weight: bold;
 }
 
@@ -218,7 +218,7 @@ header img.logo {
 }
 
 .usuario {
-    color: var(--netflix-white);
+    color: var(--netbeam-white);
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -231,7 +231,7 @@ header img.logo {
     width: 32px;
     height: 32px;
     border-radius: 4px;
-    background-color: var(--netflix-red);
+    background-color: var(--netbeam-red);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -296,7 +296,7 @@ header img.logo {
     height: 70vh;
     min-height: 500px;
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-                url('https://image.tmdb.org/t/p/w1280/gh4cZbhZxyTbgxQPxD0dOudNPTn.jpg') center/cover no-repeat;
+                url('https://es.wp-s.ru/wallpapers/16/17/464455474531767/portada-de-la-pel-cula-piratas-del-caribe-con-jack-sparrow.jpg') center/cover no-repeat;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -342,8 +342,8 @@ header img.logo {
 }
 
 .btn-primary {
-    background-color: var(--netflix-white);
-    color: var(--netflix-dark);
+    background-color: var(--netbeam-white);
+    color: var(--netbeam-dark);
 }
 
 .btn-primary:hover {
@@ -352,7 +352,7 @@ header img.logo {
 
 .btn-secondary {
     background-color: rgba(109, 109, 110, 0.7);
-    color: var(--netflix-white);
+    color: var(--netbeam-white);
 }
 
 .btn-secondary:hover {
@@ -437,7 +437,7 @@ header img.logo {
     display: flex;
     gap: 10px;
     font-size: 12px;
-    color: var(--netflix-light-gray);
+    color: var(--netbeam-light-gray);
 }
 
 .lista-btn {
@@ -464,12 +464,12 @@ header img.logo {
 }
 
 .lista-btn.en-lista {
-    background: var(--netflix-red);
+    background: var(--netbeam-red);
     opacity: 1;
 }
 
 .lista-btn:hover {
-    background: var(--netflix-red);
+    background: var(--netbeam-red);
 }
 
 /* MODAL DE PELÍCULA */
@@ -487,7 +487,7 @@ header img.logo {
 }
 
 .modal-content {
-    background-color: var(--netflix-dark);
+    background-color: var(--netbeam-dark);
     border-radius: 6px;
     width: 90%;
     max-width: 800px;
@@ -513,14 +513,14 @@ header img.logo {
     left: 0;
     right: 0;
     height: 100px;
-    background: linear-gradient(to top, var(--netflix-dark), transparent);
+    background: linear-gradient(to top, var(--netbeam-dark), transparent);
 }
 
 .modal-close {
     position: absolute;
     top: 15px;
     right: 15px;
-    background: var(--netflix-dark);
+    background: var(--netbeam-dark);
     border-radius: 50%;
     width: 36px;
     height: 36px;
@@ -550,7 +550,7 @@ header img.logo {
     display: flex;
     gap: 15px;
     margin-bottom: 20px;
-    color: var(--netflix-light-gray);
+    color: var(--netbeam-light-gray);
 }
 
 .modal-description {
@@ -566,8 +566,8 @@ header img.logo {
 
 .modal-lista-btn {
     background: transparent;
-    border: 2px solid var(--netflix-light-gray);
-    color: var(--netflix-white);
+    border: 2px solid var(--netbeam-light-gray);
+    color: var(--netbeam-white);
     padding: 8px 15px;
     border-radius: 4px;
     cursor: pointer;
@@ -576,13 +576,13 @@ header img.logo {
 }
 
 .modal-lista-btn.en-lista {
-    background: var(--netflix-red);
-    border-color: var(--netflix-red);
+    background: var(--netbeam-red);
+    border-color: var(--netbeam-red);
 }
 
 .modal-lista-btn:hover {
-    background: var(--netflix-red);
-    border-color: var(--netflix-red);
+    background: var(--netbeam-red);
+    border-color: var(--netbeam-red);
 }
 
 /* Modal de cambio de usuario */
@@ -600,7 +600,7 @@ header img.logo {
 }
 
 .user-modal-content {
-    background-color: var(--netflix-dark);
+    background-color: var(--netbeam-dark);
     border-radius: 6px;
     width: 90%;
     max-width: 500px;
@@ -643,7 +643,7 @@ header img.logo {
     width: 50px;
     height: 50px;
     border-radius: 4px;
-    background-color: var(--netflix-red);
+    background-color: var(--netbeam-red);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -659,7 +659,7 @@ header img.logo {
 
 .user-preferences {
     font-size: 0.9rem;
-    color: var(--netflix-light-gray);
+    color: var(--netbeam-light-gray);
     text-align: right;
 }
 
@@ -711,7 +711,7 @@ header img.logo {
 
 /* Indicador de preferencias del usuario actual */
 .preferences-indicator {
-    background-color: var(--netflix-red);
+    background-color: var(--netbeam-red);
     color: white;
     padding: 5px 10px;
     border-radius: 15px;
@@ -728,7 +728,7 @@ header img.logo {
 .empty-list {
     text-align: center;
     padding: 40px;
-    color: var(--netflix-light-gray);
+    color: var(--netbeam-light-gray);
 }
 
 .empty-list i {
@@ -741,10 +741,9 @@ header img.logo {
 <body>
 
 <header>
-    <img class="logo" src="img/logo.png" alt="Logo">
+    <img class="logo" src="img/image2.png" alt="Logo">
     <div class="nav-links">
         <a href="#" class="active">Inicio</a>
-        <a href="#">Novedades</a>
         <a href="#" id="miListaLink">Mi lista</a>
     </div>
     <div class="usuario-menu">
@@ -761,7 +760,7 @@ header img.logo {
                 <i>👤</i> Cambiar de usuario
             </div>
             <div class="user-dropdown-item" onclick="manageProfiles()">
-                <i>⚙️</i> Gestionar perfiles
+                <i>⚙️</i> Gestionar preferencias
             </div>
             <div class="user-dropdown-divider"></div>
             <div class="user-dropdown-item" onclick="logout()">
@@ -1087,16 +1086,12 @@ window.addEventListener('click', function(event) {
 
 // Función para gestionar perfiles
 function manageProfiles() {
-    alert("Funcionalidad de gestión de perfiles - En desarrollo");
-    document.getElementById('userDropdown').classList.remove('active');
+    window.location.href = "preferencias.php";
 }
 
 // Función para cerrar sesión
 function logout() {
-    if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
-        // Redirigir al logout
-        window.location.href = "logout.php";
-    }
+    window.location.href = "logout.php";
     document.getElementById('userDropdown').classList.remove('active');
 }
 </script>
