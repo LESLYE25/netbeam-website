@@ -2,15 +2,69 @@
 session_start();
 include("conexion.php");
 
+// Si no hay usuario en sesión, redirigir al login
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: login.php");
     exit();
 }
 
+// Si se solicita cambiar de usuario
+if (isset($_POST['cambiar_usuario'])) {
+    $nuevo_usuario_id = $_POST['usuario_id'];
+    
+    // Verificar que el usuario existe
+    $sql_verificar = "SELECT id FROM usuarios WHERE id = ?";
+    $stmt_verificar = $conn->prepare($sql_verificar);
+    $stmt_verificar->bind_param("i", $nuevo_usuario_id);
+    $stmt_verificar->execute();
+    $result_verificar = $stmt_verificar->get_result();
+    
+    if ($result_verificar->num_rows > 0) {
+        $_SESSION['usuario_id'] = $nuevo_usuario_id;
+        // Recargar la página para mostrar las nuevas preferencias
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+    $stmt_verificar->close();
+}
+
+// Agregar/eliminar de Mi Lista
+if (isset($_POST['accion_lista'])) {
+    $pelicula_id = $_POST['pelicula_id'];
+    $usuario_id = $_SESSION['usuario_id'];
+    
+    if ($_POST['accion_lista'] === 'agregar') {
+        // Verificar si ya está en la lista
+        $sql_verificar = "SELECT id FROM mi_lista WHERE usuario_id = ? AND pelicula_id = ?";
+        $stmt_verificar = $conn->prepare($sql_verificar);
+        $stmt_verificar->bind_param("ii", $usuario_id, $pelicula_id);
+        $stmt_verificar->execute();
+        $result_verificar = $stmt_verificar->get_result();
+        
+        if ($result_verificar->num_rows === 0) {
+            $sql_agregar = "INSERT INTO mi_lista (usuario_id, pelicula_id) VALUES (?, ?)";
+            $stmt_agregar = $conn->prepare($sql_agregar);
+            $stmt_agregar->bind_param("ii", $usuario_id, $pelicula_id);
+            $stmt_agregar->execute();
+            $stmt_agregar->close();
+        }
+        $stmt_verificar->close();
+    } else {
+        $sql_eliminar = "DELETE FROM mi_lista WHERE usuario_id = ? AND pelicula_id = ?";
+        $stmt_eliminar = $conn->prepare($sql_eliminar);
+        $stmt_eliminar->bind_param("ii", $usuario_id, $pelicula_id);
+        $stmt_eliminar->execute();
+        $stmt_eliminar->close();
+    }
+    
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
 $usuario_id = $_SESSION['usuario_id'];
 
-// Obtener información del usuario
-$sql_usuario = "SELECT nombre FROM usuarios WHERE id = ?";
+// Obtener información del usuario actual
+$sql_usuario = "SELECT id, nombre FROM usuarios WHERE id = ?";
 $stmt_usuario = $conn->prepare($sql_usuario);
 $stmt_usuario->bind_param("i", $usuario_id);
 $stmt_usuario->execute();
@@ -18,31 +72,56 @@ $result_usuario = $stmt_usuario->get_result();
 $usuario = $result_usuario->fetch_assoc();
 $stmt_usuario->close();
 
-// Obtener preferencias
-$sql = "SELECT genero FROM preferencias WHERE usuario_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $usuario_id);
-$stmt->execute();
-$result = $stmt->get_result();
+// Obtener preferencias del usuario actual
+$sql_preferencias = "SELECT genero FROM preferencias WHERE usuario_id = ?";
+$stmt_preferencias = $conn->prepare($sql_preferencias);
+$stmt_preferencias->bind_param("i", $usuario_id);
+$stmt_preferencias->execute();
+$result_preferencias = $stmt_preferencias->get_result();
 $preferencias = [];
-while ($row = $result->fetch_assoc()) {
+while ($row = $result_preferencias->fetch_assoc()) {
     $preferencias[] = $row['genero'];
 }
-$stmt->close();
+$stmt_preferencias->close();
 
-// Recomendaciones
-$peliculas_filtradas = [];
-if (count($preferencias) > 0) {
-    $generos_in = "'" . implode("','", $preferencias) . "'";
-    $sql = "SELECT * FROM peliculas WHERE genero IN ($generos_in) ORDER BY RAND() LIMIT 10";
-    $peliculas_filtradas = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
+// Obtener Mi Lista del usuario actual
+$sql_mi_lista = "SELECT p.* FROM peliculas p 
+                 JOIN mi_lista ml ON p.id = ml.pelicula_id 
+                 WHERE ml.usuario_id = ?";
+$stmt_mi_lista = $conn->prepare($sql_mi_lista);
+$stmt_mi_lista->bind_param("i", $usuario_id);
+$stmt_mi_lista->execute();
+$result_mi_lista = $stmt_mi_lista->get_result();
+$mi_lista = $result_mi_lista->fetch_all(MYSQLI_ASSOC);
+$stmt_mi_lista->close();
+
+// Verificar qué películas están en Mi Lista
+$peliculas_en_lista = [];
+foreach($mi_lista as $pelicula) {
+    $peliculas_en_lista[$pelicula['id']] = true;
 }
 
-// Películas por género
-$generos = ["Acción","Comedia","Terror","Romance","Ciencia ficción","Drama"];
+// Recomendaciones basadas en las preferencias
+$peliculas_filtradas = [];
+if (count($preferencias) > 0) {
+    $placeholders = str_repeat('?,', count($preferencias) - 1) . '?';
+    $sql = "SELECT * FROM peliculas WHERE genero IN ($placeholders) ORDER BY RAND() LIMIT 10";
+    $stmt = $conn->prepare($sql);
+    
+    // Vincular parámetros dinámicamente
+    $types = str_repeat('s', count($preferencias));
+    $stmt->bind_param($types, ...$preferencias);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $peliculas_filtradas = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+}
+
+// Películas por género (para todas las secciones)
+$generos = ["Acción", "Comedia", "Terror", "Romance", "Ciencia ficción", "Drama"];
 $peliculas_por_genero = [];
 foreach($generos as $gen) {
-    $stmt = $conn->prepare("SELECT * FROM peliculas WHERE genero=? ORDER BY RAND() LIMIT 10");
+    $stmt = $conn->prepare("SELECT * FROM peliculas WHERE genero = ? ORDER BY RAND() LIMIT 10");
     $stmt->bind_param("s", $gen);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -51,7 +130,7 @@ foreach($generos as $gen) {
 }
 
 // Obtener lista de usuarios para cambiar
-$sql_usuarios = "SELECT id, nombre FROM usuarios WHERE id != ? LIMIT 5";
+$sql_usuarios = "SELECT id, nombre FROM usuarios WHERE id != ?";
 $stmt_usuarios = $conn->prepare($sql_usuarios);
 $stmt_usuarios->bind_param("i", $usuario_id);
 $stmt_usuarios->execute();
@@ -124,6 +203,11 @@ header img.logo {
 
 .nav-links a:hover {
     color: var(--netflix-light-gray);
+}
+
+.nav-links a.active {
+    color: var(--netflix-white);
+    font-weight: bold;
 }
 
 .usuario-menu {
@@ -218,6 +302,7 @@ header img.logo {
     justify-content: center;
     padding: 0 4%;
     position: relative;
+    margin-top: 68px;
 }
 
 .banner-content {
@@ -287,11 +372,11 @@ header img.logo {
     font-weight: 600;
 }
 
-/* FILAS DE PELÍCULAS */
+/* FILAS DE PELÍCULAS - IMÁGENES ALTAS */
 .row {
     display: flex;
     overflow-x: auto;
-    gap: 5px;
+    gap: 8px;
     padding: 10px 0;
     scrollbar-width: none; /* Firefox */
 }
@@ -301,7 +386,8 @@ header img.logo {
 }
 
 .card {
-    min-width: 250px;
+    min-width: 150px; /* Más angosto para imágenes altas */
+    width: 150px;
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
@@ -312,32 +398,32 @@ header img.logo {
 
 .card img {
     width: 100%;
-    height: 140px;
+    height: 225px; /* Imágenes más altas */
     object-fit: cover;
-    transition: height 0.4s;
+    display: block;
 }
 
 .card:hover {
-    transform: scale(1.2);
+    transform: scale(1.1);
     z-index: 10;
 }
 
-.card:hover img {
-    height: 180px;
-}
-
-.card-info {
+.card-overlay {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-    padding: 20px 10px 10px;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
     opacity: 0;
     transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px;
 }
 
-.card:hover .card-info {
+.card:hover .card-overlay {
     opacity: 1;
 }
 
@@ -354,7 +440,39 @@ header img.logo {
     color: var(--netflix-light-gray);
 }
 
-/* MODAL */
+.lista-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s, background 0.3s;
+    z-index: 2;
+}
+
+.card:hover .lista-btn {
+    opacity: 1;
+}
+
+.lista-btn.en-lista {
+    background: var(--netflix-red);
+    opacity: 1;
+}
+
+.lista-btn:hover {
+    background: var(--netflix-red);
+}
+
+/* MODAL DE PELÍCULA */
 .modal {
     display: none;
     position: fixed;
@@ -362,7 +480,7 @@ header img.logo {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgba(0,0,0,0.9);
     z-index: 2000;
     justify-content: center;
     align-items: center;
@@ -412,6 +530,8 @@ header img.logo {
     cursor: pointer;
     z-index: 10;
     font-size: 20px;
+    border: none;
+    color: white;
 }
 
 .modal-body {
@@ -444,6 +564,27 @@ header img.logo {
     gap: 15px;
 }
 
+.modal-lista-btn {
+    background: transparent;
+    border: 2px solid var(--netflix-light-gray);
+    color: var(--netflix-white);
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 16px;
+}
+
+.modal-lista-btn.en-lista {
+    background: var(--netflix-red);
+    border-color: var(--netflix-red);
+}
+
+.modal-lista-btn:hover {
+    background: var(--netflix-red);
+    border-color: var(--netflix-red);
+}
+
 /* Modal de cambio de usuario */
 .user-modal {
     display: none;
@@ -452,7 +593,7 @@ header img.logo {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgba(0,0,0,0.9);
     z-index: 2000;
     justify-content: center;
     align-items: center;
@@ -487,6 +628,11 @@ header img.logo {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
+    border: none;
+    background: transparent;
+    color: white;
+    width: 100%;
+    text-align: left;
 }
 
 .user-item:hover {
@@ -507,6 +653,14 @@ header img.logo {
 
 .user-name {
     font-size: 1.2rem;
+    flex-grow: 1;
+    text-align: left;
+}
+
+.user-preferences {
+    font-size: 0.9rem;
+    color: var(--netflix-light-gray);
+    text-align: right;
 }
 
 /* RESPONSIVE */
@@ -524,7 +678,12 @@ header img.logo {
     }
     
     .card {
-        min-width: 150px;
+        min-width: 120px;
+        width: 120px;
+    }
+    
+    .card img {
+        height: 180px;
     }
     
     .modal-content {
@@ -539,6 +698,43 @@ header img.logo {
         width: 180px;
         right: -10px;
     }
+    
+    .user-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .user-preferences {
+        text-align: center;
+    }
+}
+
+/* Indicador de preferencias del usuario actual */
+.preferences-indicator {
+    background-color: var(--netflix-red);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    margin-left: 10px;
+}
+
+/* Sección Mi Lista */
+.mi-lista-section {
+    margin-top: 40px;
+    padding: 0 4%;
+}
+
+.empty-list {
+    text-align: center;
+    padding: 40px;
+    color: var(--netflix-light-gray);
+}
+
+.empty-list i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
 }
 </style>
 </head>
@@ -547,16 +743,17 @@ header img.logo {
 <header>
     <img class="logo" src="img/logo.png" alt="Logo">
     <div class="nav-links">
-        <a href="#">Inicio</a>
-        <a href="#">Series</a>
-        <a href="#">Películas</a>
+        <a href="#" class="active">Inicio</a>
         <a href="#">Novedades</a>
-        <a href="#">Mi lista</a>
+        <a href="#" id="miListaLink">Mi lista</a>
     </div>
     <div class="usuario-menu">
         <div class="usuario" onclick="toggleUserMenu()">
             <div class="usuario-avatar"><?= substr($usuario['nombre'], 0, 1) ?></div>
             <?= $usuario['nombre'] ?>
+            <?php if(count($preferencias) > 0): ?>
+                <span class="preferences-indicator"><?= count($preferencias) ?> pref.</span>
+            <?php endif; ?>
             <span>▼</span>
         </div>
         <div class="user-dropdown" id="userDropdown">
@@ -576,8 +773,14 @@ header img.logo {
 
 <div class="banner">
     <div class="banner-content">
-        <h1>Destacados</h1>
-        <p>Explora tus películas favoritas 🎬</p>
+        <h1>Bienvenido, <?= $usuario['nombre'] ?></h1>
+        <p>
+            <?php if(count($preferencias) > 0): ?>
+                Te recomendamos películas de: <?= implode(', ', $preferencias) ?>
+            <?php else: ?>
+                Configura tus preferencias para obtener recomendaciones personalizadas
+            <?php endif; ?>
+        </p>
         <div class="banner-buttons">
             <button class="btn btn-primary">▶ Reproducir</button>
             <button class="btn btn-secondary">ⓘ Más información</button>
@@ -585,23 +788,61 @@ header img.logo {
     </div>
 </div>
 
-<?php if(count($peliculas_filtradas) > 0): ?>
-<div class="section">
-    <h2 class="section-title">Recomendaciones para ti 🍿</h2>
-    <div class="row">
-        <?php foreach($peliculas_filtradas as $p): ?>
+<!-- SECCIÓN MI LISTA -->
+<div class="mi-lista-section" id="miListaSection" style="<?= count($mi_lista) == 0 ? 'display:none;' : '' ?>">
+    <h2 class="section-title">Mi Lista 💖</h2>
+    <div class="row" id="miListaRow">
+        <?php foreach($mi_lista as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
-                <div class="card-info">
+                <button class="lista-btn en-lista" onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" title="Quitar de Mi Lista">✓</button>
+                <div class="card-overlay">
                     <div class="card-title"><?= $p['titulo'] ?></div>
                     <div class="card-details">
                         <span><?= $p['genero'] ?></span>
-                        <span><?= $p['anio'] ?? '' ?></span>
                     </div>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
+</div>
+
+<?php if(count($mi_lista) == 0): ?>
+<div class="mi-lista-section">
+    <div class="empty-list">
+        <i>📝</i>
+        <h3>Tu lista está vacía</h3>
+        <p>Agrega películas a tu lista para verlas más tarde</p>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if(count($peliculas_filtradas) > 0): ?>
+<div class="section">
+    <h2 class="section-title">Recomendaciones para ti 🍿</h2>
+    <div class="row">
+        <?php foreach($peliculas_filtradas as $p): ?>
+            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>)">
+                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
+                        onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
+                        title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
+                    <?= isset($peliculas_en_lista[$p['id']]) ? '✓' : '+' ?>
+                </button>
+                <div class="card-overlay">
+                    <div class="card-title"><?= $p['titulo'] ?></div>
+                    <div class="card-details">
+                        <span><?= $p['genero'] ?></span>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php else: ?>
+<div class="section">
+    <h2 class="section-title">Configura tus preferencias</h2>
+    <p>Para obtener recomendaciones personalizadas, selecciona tus géneros favoritos en la configuración de tu perfil.</p>
 </div>
 <?php endif; ?>
 
@@ -610,13 +851,17 @@ header img.logo {
     <h2 class="section-title"><?= $gen ?></h2>
     <div class="row">
         <?php foreach($peliculas as $p): ?>
-            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>)">
+            <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
-                <div class="card-info">
+                <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
+                        onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
+                        title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
+                    <?= isset($peliculas_en_lista[$p['id']]) ? '✓' : '+' ?>
+                </button>
+                <div class="card-overlay">
                     <div class="card-title"><?= $p['titulo'] ?></div>
                     <div class="card-details">
                         <span><?= $p['genero'] ?></span>
-                        <span><?= $p['anio'] ?? '' ?></span>
                     </div>
                 </div>
             </div>
@@ -629,14 +874,14 @@ header img.logo {
 <div id="movieModal" class="modal">
     <div class="modal-content">
         <div class="modal-header" id="modalHeader"></div>
-        <div class="modal-close" onclick="closeModal()">×</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
         <div class="modal-body">
             <h2 class="modal-title" id="modalTitle"></h2>
             <div class="modal-details" id="modalDetails"></div>
             <p class="modal-description" id="modalDescription"></p>
             <div class="modal-buttons">
                 <button class="btn btn-primary">▶ Reproducir</button>
-                <button class="btn btn-secondary">+ Mi lista</button>
+                <button class="modal-lista-btn" id="modalListaBtn">+ Mi lista</button>
             </div>
         </div>
     </div>
@@ -647,11 +892,30 @@ header img.logo {
     <div class="user-modal-content">
         <h2 class="user-modal-title">¿Quién está viendo?</h2>
         <div class="user-list">
-            <?php foreach($otros_usuarios as $otro_usuario): ?>
-            <div class="user-item" onclick="changeUser(<?= $otro_usuario['id'] ?>)">
-                <div class="user-avatar"><?= substr($otro_usuario['nombre'], 0, 1) ?></div>
-                <div class="user-name"><?= $otro_usuario['nombre'] ?></div>
-            </div>
+            <?php 
+            foreach($otros_usuarios as $otro_usuario): 
+                // Obtener preferencias de cada usuario
+                $sql_user_prefs = "SELECT genero FROM preferencias WHERE usuario_id = ?";
+                $stmt_user_prefs = $conn->prepare($sql_user_prefs);
+                $stmt_user_prefs->bind_param("i", $otro_usuario['id']);
+                $stmt_user_prefs->execute();
+                $result_user_prefs = $stmt_user_prefs->get_result();
+                $user_prefs = [];
+                while ($row = $result_user_prefs->fetch_assoc()) {
+                    $user_prefs[] = $row['genero'];
+                }
+                $stmt_user_prefs->close();
+            ?>
+            <form method="POST" class="user-item-form">
+                <input type="hidden" name="usuario_id" value="<?= $otro_usuario['id'] ?>">
+                <button type="submit" name="cambiar_usuario" class="user-item">
+                    <div class="user-avatar"><?= substr($otro_usuario['nombre'], 0, 1) ?></div>
+                    <div class="user-name"><?= $otro_usuario['nombre'] ?></div>
+                    <div class="user-preferences">
+                        <?= count($user_prefs) > 0 ? implode(', ', array_slice($user_prefs, 0, 2)) . (count($user_prefs) > 2 ? '...' : '') : 'Sin preferencias' ?>
+                    </div>
+                </button>
+            </form>
             <?php endforeach; ?>
         </div>
         <button class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
@@ -669,13 +933,46 @@ window.addEventListener('scroll', function() {
     }
 });
 
+// Variable global para la película actual en el modal
+let peliculaActual = null;
+
+// Función para agregar/eliminar de Mi Lista
+function toggleLista(peliculaId, boton) {
+    const formData = new FormData();
+    formData.append('pelicula_id', peliculaId);
+    
+    if (boton.classList.contains('en-lista')) {
+        formData.append('accion_lista', 'eliminar');
+    } else {
+        formData.append('accion_lista', 'agregar');
+    }
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        }
+    });
+}
+
+// Navegación a Mi Lista
+document.getElementById('miListaLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('miListaSection').scrollIntoView({ behavior: 'smooth' });
+});
+
 // Función para abrir el modal de película
 function openModal(movie) {
+    peliculaActual = movie;
+    
     const modal = document.getElementById('movieModal');
     const modalHeader = document.getElementById('modalHeader');
     const modalTitle = document.getElementById('modalTitle');
     const modalDetails = document.getElementById('modalDetails');
     const modalDescription = document.getElementById('modalDescription');
+    const modalListaBtn = document.getElementById('modalListaBtn');
     
     // Establecer el fondo del header del modal
     modalHeader.style.backgroundImage = `url('${movie.imagen}')`;
@@ -685,14 +982,23 @@ function openModal(movie) {
     
     // Establecer detalles
     modalDetails.innerHTML = `
-        <span>${movie.anio || 'N/A'}</span>
         <span>${movie.genero}</span>
-        <span>${movie.duracion || 'N/A'}</span>
+        <span>${movie.anio || ''}</span>
+        <span>${movie.duracion || ''}</span>
     `;
     
-    // Establecer descripción (usando un texto de ejemplo si no hay en la BD)
+    // Establecer descripción
     modalDescription.textContent = movie.descripcion || 
         `Disfruta de "${movie.titulo}", una película del género ${movie.genero} que te mantendrá en el borde de tu asiento.`;
+    
+    // Configurar botón de Mi Lista en el modal
+    if (movie.enLista) {
+        modalListaBtn.textContent = '✓ En Mi Lista';
+        modalListaBtn.classList.add('en-lista');
+    } else {
+        modalListaBtn.textContent = '+ Mi lista';
+        modalListaBtn.classList.remove('en-lista');
+    }
     
     // Mostrar el modal
     modal.style.display = 'flex';
@@ -704,6 +1010,7 @@ function closeModal() {
     const modal = document.getElementById('movieModal');
     modal.style.display = 'none';
     document.body.style.overflow = 'auto';
+    peliculaActual = null;
 }
 
 // Cerrar modal al hacer clic fuera del contenido
@@ -711,6 +1018,30 @@ window.addEventListener('click', function(event) {
     const modal = document.getElementById('movieModal');
     if (event.target === modal) {
         closeModal();
+    }
+});
+
+// Configurar botón de lista en el modal
+document.getElementById('modalListaBtn').addEventListener('click', function() {
+    if (peliculaActual) {
+        // Simular click en el botón de lista
+        const formData = new FormData();
+        formData.append('pelicula_id', peliculaActual.id);
+        
+        if (peliculaActual.enLista) {
+            formData.append('accion_lista', 'eliminar');
+        } else {
+            formData.append('accion_lista', 'agregar');
+        }
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
     }
 });
 
@@ -753,16 +1084,6 @@ window.addEventListener('click', function(event) {
         closeUserModal();
     }
 });
-
-// Función para cambiar de usuario
-function changeUser(userId) {
-    // Aquí iría la lógica para cambiar de usuario
-    // Por ahora simulamos con un mensaje
-    alert(`Cambiando al usuario con ID: ${userId}`);
-    // En una implementación real, haríamos una petición al servidor
-    // para cambiar la sesión y recargar la página
-    closeUserModal();
-}
 
 // Función para gestionar perfiles
 function manageProfiles() {
