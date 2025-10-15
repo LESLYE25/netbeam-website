@@ -37,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Iniciar sesión</title>
     <link rel="stylesheet" href="./css/cuenta.css" />
-    <link rel="shortcut icon" type="image/jpg" href="img/image2.png" />
+    <link rel="shortcut icon" type="image/jpg" href="img/image.png" />
 
   </head>
   <body>

@@ -24,26 +24,6 @@ if ($preferencias_count == 0) {
     exit();
 }
 
-// Si se solicita cambiar de usuario
-if (isset($_POST['cambiar_usuario'])) {
-    $nuevo_usuario_id = $_POST['usuario_id'];
-    
-    // Verificar que el usuario existe
-    $sql_verificar = "SELECT id FROM usuarios WHERE id = ?";
-    $stmt_verificar = $conn->prepare($sql_verificar);
-    $stmt_verificar->bind_param("i", $nuevo_usuario_id);
-    $stmt_verificar->execute();
-    $result_verificar = $stmt_verificar->get_result();
-    
-    if ($result_verificar->num_rows > 0) {
-        $_SESSION['usuario_id'] = $nuevo_usuario_id;
-        // Recargar la página para mostrar las nuevas preferencias
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
-    }
-    $stmt_verificar->close();
-}
-
 // Agregar/eliminar de Mi Lista
 if (isset($_POST['accion_lista'])) {
     $pelicula_id = $_POST['pelicula_id'];
@@ -203,21 +183,37 @@ foreach($generos as $gen) {
     $stmt->close();
 }
 
-// Obtener lista de usuarios para cambiar
-$sql_usuarios = "SELECT id, nombre FROM usuarios WHERE id != ?";
-$stmt_usuarios = $conn->prepare($sql_usuarios);
-$stmt_usuarios->bind_param("i", $usuario_id);
-$stmt_usuarios->execute();
-$result_usuarios = $stmt_usuarios->get_result();
-$otros_usuarios = $result_usuarios->fetch_all(MYSQLI_ASSOC);
-$stmt_usuarios->close();
+// Obtener películas destacadas para el carrusel principal
+$sql_carrusel = "SELECT * FROM peliculas ORDER BY RAND() LIMIT 8";
+$result_carrusel = $conn->query($sql_carrusel);
+$peliculas_carrusel = $result_carrusel->fetch_all(MYSQLI_ASSOC);
+
+// IMÁGENES ESPECÍFICAS PARA EL BANNER DE BIENVENIDA
+$banner_images = [
+    [
+        'url' => 'https://wallpapers.com/images/hd/1920x1080-hd-movie-1920-x-1080-4wl5v81m8azwaka6.jpg',
+        'title' => 'Bienvenido de vuelta, ' . $usuario['nombre'],
+        'description' => 'Continúa disfrutando de Netbeam con recomendaciones personalizadas.'
+    ],
+    [
+        'url' => 'https://wallpapers.com/images/high/action-movie-4000-x-2000-wallpaper-6yb1bqeuq59u47bw.webp',
+        'title' => 'Basado en tus preferencias',
+        'description' => 'Te recomendamos: ' . (count($preferencias) > 0 ? implode(', ', $preferencias) : 'Configura tus preferencias')
+    ],
+    [
+        'url' => 'https://wallpapers.com/images/featured/pelicula-de-accion-pb93e7r343erqgtt.jpg',
+        'title' => 'Mi Lista personalizada',
+        'description' => count($mi_lista) . ' películas guardadas en tu lista'
+    ]
+];
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tu Netbeam 🎬</title>
+<title>Netbeam 🎬 - <?= $usuario['nombre'] ?></title>
+<link rel="shortcut icon" type="image/jpg" href="img/image.png" />
 <style>
 :root {
     --netbeam-red: #e50914;
@@ -365,23 +361,51 @@ header img.logo {
     margin: 5px 0;
 }
 
-/* BANNER DESTACADO */
-.banner {
-    height: 70vh;
-    min-height: 500px;
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-                url('https://es.wp-s.ru/wallpapers/16/17/464455474531767/portada-de-la-pel-cula-piratas-del-caribe-con-jack-sparrow.jpg') center/cover no-repeat;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 4%;
+/* BANNER CARRUSEL - Estilo Netflix */
+.banner-carrusel {
     position: relative;
+    height: 90vh;
+    min-height: 500px;
     margin-top: 68px;
+    overflow: hidden;
+}
+
+.banner-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.banner-slide.active {
+    opacity: 1;
+}
+
+.banner-slide::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%);
 }
 
 .banner-content {
-    max-width: 600px;
+    position: relative;
     z-index: 2;
+    max-width: 600px;
+    padding: 0 4%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .banner h1 {
@@ -395,11 +419,13 @@ header img.logo {
     font-size: 1.2rem;
     margin-bottom: 20px;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    max-width: 500px;
 }
 
 .banner-buttons {
     display: flex;
     gap: 15px;
+    margin-top: 20px;
 }
 
 .btn {
@@ -433,6 +459,188 @@ header img.logo {
     background-color: rgba(109, 109, 110, 0.4);
 }
 
+.banner-controls {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.banner-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.banner-indicator.active {
+    background: var(--netbeam-red);
+    transform: scale(1.2);
+}
+
+.banner-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    border: none;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+    z-index: 10;
+}
+
+.banner-nav:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+.banner-prev {
+    left: 20px;
+}
+
+.banner-next {
+    right: 20px;
+}
+
+/* CARRUSEL DE PELÍCULAS - TAMAÑOS AUMENTADOS */
+.carrusel-section {
+    margin-top: 60px;
+    padding: 0 4%;
+    position: relative;
+}
+
+.carrusel-title {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    font-weight: 600;
+    color: var(--netbeam-white);
+}
+
+.carrusel-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.carrusel {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    gap: 15px;
+}
+
+.carrusel-item {
+    min-width: 350px;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.carrusel-item:hover {
+    transform: scale(1.05);
+}
+
+.carrusel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.carrusel-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    padding: 20px;
+    color: white;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.carrusel-item:hover .carrusel-overlay {
+    transform: translateY(0);
+}
+
+.carrusel-item-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.carrusel-item-genre {
+    font-size: 1rem;
+    color: var(--netbeam-light-gray);
+}
+
+.carrusel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+    z-index: 10;
+}
+
+.carrusel-btn:hover {
+    background: rgba(0,0,0,0.9);
+}
+
+.carrusel-prev {
+    left: 10px;
+}
+
+.carrusel-next {
+    right: 10px;
+}
+
+.carrusel-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.carrusel-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--netbeam-light-gray);
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.carrusel-indicator.active {
+    background: var(--netbeam-red);
+}
+
 /* SECCIONES */
 .section {
     margin-top: 40px;
@@ -446,23 +654,24 @@ header img.logo {
     font-weight: 600;
 }
 
-/* FILAS DE PELÍCULAS - IMÁGENES ALTAS */
+/* FILAS DE PELÍCULAS - TAMAÑOS AUMENTADOS */
 .row {
     display: flex;
     overflow-x: auto;
-    gap: 8px;
+    gap: 12px;
     padding: 10px 0;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    scroll-behavior: smooth;
 }
 
 .row::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
+    display: none;
 }
 
 .card {
-    min-width: 150px; /* Más angosto para imágenes altas */
-    width: 150px;
-    border-radius: 4px;
+    min-width: 180px;
+    width: 180px;
+    border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
     transition: transform 0.4s ease, z-index 0.4s;
@@ -472,7 +681,7 @@ header img.logo {
 
 .card img {
     width: 100%;
-    height: 225px; /* Imágenes más altas */
+    height: 270px;
     object-fit: cover;
     display: block;
 }
@@ -494,7 +703,7 @@ header img.logo {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 10px;
+    padding: 12px;
 }
 
 .card:hover .card-overlay {
@@ -504,13 +713,13 @@ header img.logo {
 .card-title {
     font-weight: bold;
     margin-bottom: 5px;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .card-details {
     display: flex;
     gap: 10px;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--netbeam-light-gray);
 }
 
@@ -546,7 +755,45 @@ header img.logo {
     background: var(--netbeam-red);
 }
 
-/* MODAL DE PELÍCULA - MÁS ALTO Y MENOS ANCHO */
+/* Botones de navegación para secciones por género */
+.section-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.section:hover .section-nav {
+    opacity: 1;
+}
+
+.section-nav:hover {
+    background: rgba(0,0,0,0.9);
+}
+
+.section-prev {
+    left: 10px;
+}
+
+.section-next {
+    right: 10px;
+}
+
+/* MODAL DE PELÍCULA */
 .modal {
     display: none;
     position: fixed;
@@ -565,7 +812,7 @@ header img.logo {
     background-color: var(--netbeam-dark);
     border-radius: 10px;
     width: 90%;
-    max-width: 600px; /* Menos ancho */
+    max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
@@ -575,7 +822,7 @@ header img.logo {
 }
 
 .modal-header {
-    height: 400px; /* Más alto */
+    height: 400px;
     min-height: 400px;
     background-size: cover;
     background-position: center;
@@ -673,6 +920,25 @@ header img.logo {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.btn-comenzar {
+    background: rgb(219, 0, 1);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 4px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-comenzar:hover {
+    background: rgb(193, 0, 1);
 }
 
 .modal-lista-btn.en-lista {
@@ -781,7 +1047,7 @@ header img.logo {
     color: #ffd700;
 }
 
-/* Modal de cambio de usuario */
+/* Modal de cierre de sesión */
 .user-modal {
     display: none;
     position: fixed;
@@ -859,6 +1125,34 @@ header img.logo {
     text-align: right;
 }
 
+/* Indicador de preferencias del usuario actual */
+.preferences-indicator {
+    background-color: var(--netbeam-red);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    margin-left: 10px;
+}
+
+/* Sección Mi Lista */
+.mi-lista-section {
+    margin-top: 40px;
+    padding: 0 4%;
+}
+
+.empty-list {
+    text-align: center;
+    padding: 40px;
+    color: var(--netbeam-light-gray);
+}
+
+.empty-list i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
     .banner h1 {
@@ -874,12 +1168,12 @@ header img.logo {
     }
     
     .card {
-        min-width: 120px;
-        width: 120px;
+        min-width: 140px;
+        width: 140px;
     }
     
     .card img {
-        height: 180px;
+        height: 210px;
     }
     
     .modal-content {
@@ -913,34 +1207,65 @@ header img.logo {
     .user-preferences {
         text-align: center;
     }
+    
+    .carrusel-item {
+        min-width: 280px;
+        height: 400px;
+    }
+    
+    .carrusel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .banner-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .banner-prev {
+        left: 10px;
+    }
+    
+    .banner-next {
+        right: 10px;
+    }
+    
+    .section-nav {
+        display: none;
+    }
 }
 
-/* Indicador de preferencias del usuario actual */
-.preferences-indicator {
-    background-color: var(--netbeam-red);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    margin-left: 10px;
-}
-
-/* Sección Mi Lista */
-.mi-lista-section {
-    margin-top: 40px;
-    padding: 0 4%;
-}
-
-.empty-list {
-    text-align: center;
-    padding: 40px;
-    color: var(--netbeam-light-gray);
-}
-
-.empty-list i {
-    font-size: 3rem;
-    margin-bottom: 20px;
-    display: block;
+@media (max-width: 480px) {
+    .carrusel-item {
+        min-width: 220px;
+        height: 315px;
+    }
+    
+    .banner h1 {
+        font-size: 2rem;
+    }
+    
+    .banner-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .card {
+        min-width: 120px;
+        width: 120px;
+    }
+    
+    .card img {
+        height: 180px;
+    }
 }
 </style>
 </head>
@@ -962,9 +1287,6 @@ header img.logo {
             <span>▼</span>
         </div>
         <div class="user-dropdown" id="userDropdown">
-            <div class="user-dropdown-item" onclick="openUserModal()">
-                <i>👤</i> Cambiar de usuario
-            </div>
             <div class="user-dropdown-item" onclick="manageProfiles()">
                 <i>⚙️</i> Gestionar preferencias
             </div>
@@ -976,19 +1298,116 @@ header img.logo {
     </div>
 </header>
 
-<div class="banner">
-    <div class="banner-content">
-        <h1>Bienvenido, <?= $usuario['nombre'] ?></h1>
-        <p>
-            <?php if(count($preferencias) > 0): ?>
-                Te recomendamos películas de: <?= implode(', ', $preferencias) ?>
-            <?php else: ?>
-                Configura tus preferencias para obtener recomendaciones personalizadas
-            <?php endif; ?>
-        </p>
-        <div class="banner-buttons">
-            <button class="btn btn-primary">▶ Reproducir</button>
-            <button class="btn btn-secondary">ⓘ Más información</button>
+<!-- MODAL DE CONFIRMACIÓN DE CIERRE DE SESIÓN -->
+<div id="logoutModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <button class="modal-close" onclick="closeLogoutModal()">×</button>
+        <div class="modal-body" style="text-align: center;">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🚪</div>
+            <h2 class="modal-title" style="font-size: 1.8rem;">Cerrar Sesión</h2>
+            <p class="modal-description" style="margin-bottom: 30px;">
+                ¿Estás seguro de que quieres cerrar sesión?<br>
+                Podrás volver a iniciar sesión en cualquier momento.
+            </p>
+            
+            <div class="modal-buttons" style="justify-content: center; gap: 15px;">
+                <button class="btn-secondary" onclick="closeLogoutModal()" style="padding: 12px 25px;">
+                    Cancelar
+                </button>
+                <button class="btn-comenzar" onclick="confirmLogout()" style="padding: 12px 25px;">
+                    Sí, Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BANNER CARRUSEL - Con imágenes específicas -->
+<div class="banner-carrusel" id="bannerCarrusel">
+    <?php foreach($banner_images as $index => $banner): ?>
+    <div class="banner-slide <?= $index === 0 ? 'active' : '' ?>" 
+         style="background-image: url('<?= $banner['url'] ?>')">
+        <div class="banner-content">
+            <h1><?= $banner['title'] ?></h1>
+            <p><?= $banner['description'] ?></p>
+            <div class="banner-buttons">
+                <button class="btn btn-primary">▶ Reproducir</button>
+                <button class="btn btn-secondary" onclick="openInfoModal()">ⓘ Más información</button>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+    
+    <button class="banner-nav banner-prev" onclick="moveBanner(-1)">❮</button>
+    <button class="banner-nav banner-next" onclick="moveBanner(1)">❯</button>
+    
+    <div class="banner-controls" id="bannerIndicators">
+        <?php foreach($banner_images as $index => $banner): ?>
+            <div class="banner-indicator <?= $index === 0 ? 'active' : '' ?>" 
+                 onclick="goToBannerSlide(<?= $index ?>)"></div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- MODAL DE INFORMACIÓN GENERAL -->
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeInfoModal()">×</button>
+        <div class="modal-body">
+            <h2 class="modal-title">Sobre Netbeam</h2>
+            <div class="modal-details">
+                <span class="rating-badge">Plataforma Premium</span>
+                <span>⭐ 4.8/5</span>
+            </div>
+            <p class="modal-description">
+                Netbeam es tu destino premium para disfrutar de las mejores películas y series. Con una interfaz intuitiva 
+                y contenido actualizado regularmente, ofrecemos una experiencia de entretenimiento excepcional.
+                <br><br>
+                <strong>Características exclusivas para usuarios registrados:</strong>
+                <br>• Recomendaciones personalizadas basadas en tus preferencias
+                <br>• Mi Lista para guardar tus películas favoritas
+                <br>• Sistema de valoraciones para mejorar las recomendaciones
+                <br>• Múltiples perfiles de usuario
+                <br>• Contenido exclusivo y original
+                <br><br>
+                <strong>Géneros disponibles:</strong>
+                <br>• Acción • Comedia • Terror • Romance • Ciencia ficción • Drama
+            </p>
+            
+            <div class="modal-buttons">
+                <button class="btn-comenzar" onclick="closeInfoModal()">
+                    ¡Entendido!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CARRUSEL DE PELÍCULAS DESTACADAS -->
+<div class="carrusel-section">
+    <h2 class="carrusel-title">Películas Destacadas</h2>
+    <div class="carrusel-container">
+        <button class="carrusel-btn carrusel-prev" onclick="moveCarrusel('destacadas', -1)">❮</button>
+        <div class="carrusel" id="carruselDestacadas">
+            <?php foreach($peliculas_carrusel as $p): ?>
+                <div class="carrusel-item" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
+                    <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                    <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
+                            onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
+                            title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
+                        <?= isset($peliculas_en_lista[$p['id']]) ? '✓' : '+' ?>
+                    </button>
+                    <div class="carrusel-overlay">
+                        <div class="carrusel-item-title"><?= $p['titulo'] ?></div>
+                        <div class="carrusel-item-genre"><?= $p['genero'] ?></div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <button class="carrusel-btn carrusel-next" onclick="moveCarrusel('destacadas', 1)">❯</button>
+        
+        <div class="carrusel-indicators" id="carruselIndicatorsDestacadas">
+            <!-- Los indicadores se generan dinámicamente con JavaScript -->
         </div>
     </div>
 </div>
@@ -1026,7 +1445,8 @@ header img.logo {
 <?php if(count($peliculas_populares) > 0): ?>
 <div class="section">
     <h2 class="section-title">🔥 Más populares</h2>
-    <div class="row">
+    <button class="section-nav section-prev" onclick="scrollSection('populares', -1)">❮</button>
+    <div class="row" id="row-populares">
         <?php foreach($peliculas_populares as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
@@ -1044,13 +1464,15 @@ header img.logo {
             </div>
         <?php endforeach; ?>
     </div>
+    <button class="section-nav section-next" onclick="scrollSection('populares', 1)">❯</button>
 </div>
 <?php endif; ?>
 
 <?php if(count($peliculas_filtradas) > 0): ?>
 <div class="section">
     <h2 class="section-title">Para ti 🍿 (Basado en tus preferencias)</h2>
-    <div class="row">
+    <button class="section-nav section-prev" onclick="scrollSection('recomendaciones', -1)">❮</button>
+    <div class="row" id="row-recomendaciones">
         <?php foreach($peliculas_filtradas as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
@@ -1068,6 +1490,7 @@ header img.logo {
             </div>
         <?php endforeach; ?>
     </div>
+    <button class="section-nav section-next" onclick="scrollSection('recomendaciones', 1)">❯</button>
 </div>
 <?php else: ?>
 <div class="section">
@@ -1077,9 +1500,10 @@ header img.logo {
 <?php endif; ?>
 
 <?php foreach($peliculas_por_genero as $gen => $peliculas): ?>
-<div class="section">
+<div class="section" id="section-<?= strtolower(str_replace(' ', '-', $gen)) ?>">
     <h2 class="section-title"><?= $gen ?></h2>
-    <div class="row">
+    <button class="section-nav section-prev" onclick="scrollSection('<?= strtolower(str_replace(' ', '-', $gen)) ?>', -1)">❮</button>
+    <div class="row" id="row-<?= strtolower(str_replace(' ', '-', $gen)) ?>">
         <?php foreach($peliculas as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
                 <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
@@ -1097,6 +1521,7 @@ header img.logo {
             </div>
         <?php endforeach; ?>
     </div>
+    <button class="section-nav section-next" onclick="scrollSection('<?= strtolower(str_replace(' ', '-', $gen)) ?>', 1)">❯</button>
 </div>
 <?php endforeach; ?>
 
@@ -1145,49 +1570,163 @@ header img.logo {
     </div>
 </div>
 
-<!-- MODAL DE CAMBIO DE USUARIO -->
-<div id="userModal" class="user-modal">
-    <div class="user-modal-content">
-        <h2 class="user-modal-title">¿Quién está viendo?</h2>
-        <div class="user-list">
-            <?php 
-            foreach($otros_usuarios as $otro_usuario): 
-                // Obtener preferencias de cada usuario
-                $sql_user_prefs = "SELECT genero FROM preferencias WHERE usuario_id = ?";
-                $stmt_user_prefs = $conn->prepare($sql_user_prefs);
-                $stmt_user_prefs->bind_param("i", $otro_usuario['id']);
-                $stmt_user_prefs->execute();
-                $result_user_prefs = $stmt_user_prefs->get_result();
-                $user_prefs = [];
-                while ($row = $result_user_prefs->fetch_assoc()) {
-                    $user_prefs[] = $row['genero'];
-                }
-                $stmt_user_prefs->close();
-            ?>
-            <form method="POST" class="user-item-form">
-                <input type="hidden" name="usuario_id" value="<?= $otro_usuario['id'] ?>">
-                <button type="submit" name="cambiar_usuario" class="user-item">
-                    <div class="user-avatar"><?= substr($otro_usuario['nombre'], 0, 1) ?></div>
-                    <div class="user-name"><?= $otro_usuario['nombre'] ?></div>
-                    <div class="user-preferences">
-                        <?= count($user_prefs) > 0 ? implode(', ', array_slice($user_prefs, 0, 2)) . (count($user_prefs) > 2 ? '...' : '') : 'Sin preferencias' ?>
-                    </div>
-                </button>
-            </form>
-            <?php endforeach; ?>
-        </div>
-        <button class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
-    </div>
-</div>
-
 <script>
+// Variables para los carruseles
+const carruseles = {
+    destacadas: {
+        currentIndex: 0,
+        items: [],
+        indicators: []
+    }
+};
+
+const itemsPerView = 4;
+
+// Variables para el banner carrusel
+let currentBannerIndex = 0;
+let bannerSlides = [];
+let bannerInterval;
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCarruseles();
+    initializeBanner();
+});
+
+// ========== BANNER CARRUSEL ==========
+function initializeBanner() {
+    bannerSlides = document.querySelectorAll('.banner-slide');
+    startBannerAutoPlay();
+}
+
+function moveBanner(direction) {
+    const totalSlides = bannerSlides.length;
+    currentBannerIndex = (currentBannerIndex + direction + totalSlides) % totalSlides;
+    updateBanner();
+    resetBannerAutoPlay();
+}
+
+function goToBannerSlide(index) {
+    currentBannerIndex = index;
+    updateBanner();
+    resetBannerAutoPlay();
+}
+
+function updateBanner() {
+    bannerSlides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === currentBannerIndex);
+    });
+    
+    // Actualizar indicadores
+    const indicators = document.querySelectorAll('.banner-indicator');
+    indicators.forEach((indicator, index) => {
+        indicator.classList.toggle('active', index === currentBannerIndex);
+    });
+}
+
+function startBannerAutoPlay() {
+    bannerInterval = setInterval(() => {
+        moveBanner(1);
+    }, 6000); // Cambia cada 6 segundos
+}
+
+function resetBannerAutoPlay() {
+    clearInterval(bannerInterval);
+    startBannerAutoPlay();
+}
+
+// ========== CARRUSEL DE PELÍCULAS DESTACADAS ==========
+function initializeCarruseles() {
+    // Inicializar carrusel de destacadas
+    const carrusel = document.getElementById('carruselDestacadas');
+    if (carrusel) {
+        carruseles.destacadas.items = Array.from(carrusel.children);
+        
+        // Crear indicadores
+        const indicatorsContainer = document.getElementById('carruselIndicatorsDestacadas');
+        if (indicatorsContainer) {
+            const totalIndicators = Math.ceil(carruseles.destacadas.items.length / itemsPerView);
+            
+            indicatorsContainer.innerHTML = '';
+            for (let i = 0; i < totalIndicators; i++) {
+                const indicator = document.createElement('div');
+                indicator.className = 'carrusel-indicator' + (i === 0 ? ' active' : '');
+                indicator.onclick = () => goToCarruselSlide('destacadas', i);
+                indicatorsContainer.appendChild(indicator);
+            }
+            
+            carruseles.destacadas.indicators = Array.from(indicatorsContainer.children);
+            updateCarrusel('destacadas');
+            
+            // Auto-avance para el carrusel
+            setInterval(() => {
+                moveCarrusel('destacadas', 1);
+            }, 5000);
+        }
+    }
+}
+
+function moveCarrusel(carruselKey, direction) {
+    const carrusel = carruseles[carruselKey];
+    if (carrusel && carrusel.items.length > 0) {
+        const totalSlides = Math.ceil(carrusel.items.length / itemsPerView);
+        carrusel.currentIndex = (carrusel.currentIndex + direction + totalSlides) % totalSlides;
+        updateCarrusel(carruselKey);
+    }
+}
+
+function goToCarruselSlide(carruselKey, index) {
+    const carrusel = carruseles[carruselKey];
+    if (carrusel) {
+        const totalSlides = Math.ceil(carrusel.items.length / itemsPerView);
+        carrusel.currentIndex = index;
+        updateCarrusel(carruselKey);
+    }
+}
+
+function updateCarrusel(carruselKey) {
+    const carrusel = carruseles[carruselKey];
+    if (carrusel && carrusel.items.length > 0) {
+        const carruselElement = document.getElementById(`carrusel${carruselKey.charAt(0).toUpperCase() + carruselKey.slice(1)}`);
+        if (carruselElement) {
+            const itemWidth = carrusel.items[0].offsetWidth + 15;
+            const translateX = -carrusel.currentIndex * itemWidth * itemsPerView;
+            carruselElement.style.transform = `translateX(${translateX}px)`;
+            
+            // Actualizar indicadores
+            if (carrusel.indicators) {
+                carrusel.indicators.forEach((indicator, index) => {
+                    indicator.classList.toggle('active', index === carrusel.currentIndex);
+                });
+            }
+        }
+    }
+}
+
+// ========== NAVEGACIÓN PARA SECCIONES POR GÉNERO ==========
+function scrollSection(sectionId, direction) {
+    const row = document.getElementById(`row-${sectionId}`);
+    if (row) {
+        const scrollAmount = 300;
+        const newScrollPosition = row.scrollLeft + (scrollAmount * direction);
+        
+        row.scrollTo({
+            left: newScrollPosition,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// ========== FUNCIONES GENERALES ==========
 // Efecto de scroll en el header
 window.addEventListener('scroll', function() {
     const header = document.querySelector('header');
-    if (window.scrollY > 100) {
-        header.classList.add('scrolled');
-    } else {
-        header.classList.remove('scrolled');
+    if (header) {
+        if (window.scrollY > 100) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
     }
 });
 
@@ -1457,52 +1996,94 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Abrir modal de cambio de usuario
-function openUserModal() {
-    const modal = document.getElementById('userModal');
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    // Cerrar el menú desplegable
-    document.getElementById('userDropdown').classList.remove('active');
-}
-
-// Cerrar modal de cambio de usuario
-function closeUserModal() {
-    const modal = document.getElementById('userModal');
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-}
-
-// Cerrar modal de usuario al hacer clic fuera
-document.getElementById('userModal').addEventListener('click', function(event) {
-    if (event.target === this) {
-        closeUserModal();
-    }
-});
-
-// Prevenir que el clic dentro del modal de usuario lo cierre
-document.querySelector('.user-modal-content').addEventListener('click', function(event) {
-    event.stopPropagation();
-});
-
-// Configurar botón de cancelar en modal de usuario
-document.querySelector('.user-modal-content .btn-secondary').addEventListener('click', function(event) {
-    event.stopPropagation();
-    closeUserModal();
-});
-
 // Función para gestionar perfiles
 function manageProfiles() {
     window.location.href = "preferencias.php";
 }
 
+// Función para abrir modal de cierre de sesión
+function openLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        // Cerrar el menú desplegable
+        document.getElementById('userDropdown').classList.remove('active');
+    }
+}
+
+// Función para cerrar modal de cierre de sesión
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Función para confirmar cierre de sesión
+function confirmLogout() {
+    window.location.href = "logout.php";
+}
+
 // Función para cerrar sesión
 function logout() {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-        window.location.href = "logout.php";
-    }
-    document.getElementById('userDropdown').classList.remove('active');
+    openLogoutModal();
 }
+
+// Configurar el cierre del modal de logout
+document.querySelector('#logoutModal .modal-close').addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeLogoutModal();
+});
+
+// Cerrar modal de logout al hacer clic fuera
+document.getElementById('logoutModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeLogoutModal();
+    }
+});
+
+// Prevenir que el clic dentro del modal de logout lo cierre
+document.querySelector('#logoutModal .modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
+});
+
+// Función para abrir modal de información general
+function openInfoModal() {
+    const modal = document.getElementById('infoModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+// Función para cerrar modal de información
+function closeInfoModal() {
+    const modal = document.getElementById('infoModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Configurar el cierre del modal de información
+document.querySelector('#infoModal .modal-close').addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeInfoModal();
+});
+
+// Cerrar modal de información al hacer clic fuera
+document.getElementById('infoModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closeInfoModal();
+    }
+});
+
+// Prevenir que el clic dentro del modal de información lo cierre
+document.querySelector('#infoModal .modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
+});
 
 // Inicializar eventos cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
@@ -1510,9 +2091,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && modalAbierto) {
             closeModal();
-        }
-        if (event.key === 'Escape' && document.getElementById('userModal').style.display === 'flex') {
-            closeUserModal();
         }
     });
     

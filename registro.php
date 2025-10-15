@@ -33,6 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <title>Registrarse</title>
     <link rel="stylesheet" href="./css/cuenta.css" />
+    <link rel="shortcut icon" type="image/jpg" href="img/image.png" />
 </head>
 <body>
 <div class="contenido">
