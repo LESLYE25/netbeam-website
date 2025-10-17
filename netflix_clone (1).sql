@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 15-10-2025 a las 21:59:05
+-- Tiempo de generación: 17-10-2025 a las 19:34:16
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -73,8 +73,8 @@ CREATE TABLE `peliculas` (
   `genero` varchar(100) DEFAULT NULL,
   `descripcion` text DEFAULT NULL,
   `anio` smallint(6) DEFAULT NULL,
-  `duracion` smallint(6) DEFAULT NULL,
-  `poster` varchar(255) DEFAULT NULL,
+  `duracion` varchar(20) DEFAULT NULL,
+  `poster` varchar(500) DEFAULT NULL,
   `video` varchar(255) DEFAULT NULL,
   `creado_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -84,7 +84,7 @@ CREATE TABLE `peliculas` (
 --
 
 INSERT INTO `peliculas` (`id`, `titulo`, `genero`, `descripcion`, `anio`, `duracion`, `poster`, `video`, `creado_at`) VALUES
-(1, 'Avengers: Endgame', 'Acción', NULL, 2019, NULL, 'https://static.thcdn.com/images/large/original//productimg/1600/1600/12091894-1574815082301529.jpg', NULL, '2025-10-09 02:16:31'),
+(1, 'Avengers: Endgame', 'Acción', 'Avengers: Endgame es una película de superhéroes épica que concluye la Saga del Infinito, siguiendo a los Vengadores supervivientes en su lucha contra Thanos después de que él eliminara a la mitad de la vida en el universo.', 2019, '10:50', 'https://static.thcdn.com/images/large/original//productimg/1600/1600/12091894-1574815082301529.jpg', '1760720998_videoplayback1.mp4', '2025-10-09 02:16:31'),
 (2, 'John Wick', 'Acción', NULL, 2014, NULL, 'https://upload.wikimedia.org/wikipedia/en/thumb/9/98/John_Wick_TeaserPoster.jpg/250px-John_Wick_TeaserPoster.jpg', NULL, '2025-10-09 02:16:31'),
 (3, 'Mad Max: Fury Road', 'Acción', NULL, 2015, NULL, 'https://m.media-amazon.com/images/M/MV5BZDRkODJhOTgtOTc1OC00NTgzLTk4NjItNDgxZDY4YjlmNDY2XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg', NULL, '2025-10-09 02:16:31'),
 (4, 'Jumanji: Bienvenidos a la jungla', 'Comedia', NULL, 2017, NULL, 'https://es.web.img2.acsta.net/pictures/17/11/08/14/53/3315450.jpg', NULL, '2025-10-09 02:16:31'),
@@ -143,7 +143,7 @@ INSERT INTO `peliculas` (`id`, `titulo`, `genero`, `descripcion`, `anio`, `durac
 (57, 'El Padrino', 'Drama', NULL, 1972, NULL, 'https://m.media-amazon.com/images/M/MV5BZmNiNzM4MTctODI5YS00MzczLWE2MzktNzY4YmNjYjA5YmY1XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg', NULL, '2025-10-09 02:16:31'),
 (58, '12 Años de Esclavitud', 'Drama', NULL, 2013, NULL, 'https://play-lh.googleusercontent.com/3_bi7bK4ujfpBOEz9AXwKZut8bGa67N0gJ7S5nztFYcsXF6-DJDP6PGm4ZG5d1W-0Bg', NULL, '2025-10-09 02:16:31'),
 (59, 'Una Mente Brillante', 'Drama', NULL, 2001, NULL, 'https://http2.mlstatic.com/D_NQ_NP_603776-MLA76109609850_052024-OO.jpg', NULL, '2025-10-09 02:16:31'),
-(60, 'Cambios de Reinas', 'Drama', 'Tras años de guerra entre Francia y España, que han dejado a los dos países debilitados, Felipe de Orleans, el regente de Francia, pone en marcha un plan para consolidar la paz entre ambas naciones. Casará a su hija de 12 años, señorita de Montpensier, con el heredero del trono español, y a Luis XV, próximo Rey de Francia, con Mariana Victoria, de 4 años, Infanta de España. Una adolescente y una niña se verán atrapadas en una red de alianzas, traiciones y juegos de poder.', 2019, NULL, 'https://cartelera.elpais.com/assets/uploads/2019/02/18131428/C_19722.jpg', NULL, '2025-10-09 02:16:31');
+(60, 'Cambios de Reinas', 'Drama', 'Tras años de guerra entre Francia y España, que han dejado a los dos países debilitados, Felipe de Orleans, el regente de Francia, pone en marcha un plan para consolidar la paz entre ambas naciones. Casará a su hija de 12 años, señorita de Montpensier, con el heredero del trono español, y a Luis XV, próximo Rey de Francia, con Mariana Victoria, de 4 años, Infanta de España. Una adolescente y una niña se verán atrapadas en una red de alianzas, traiciones y juegos de poder.', 2019, '01:44', 'https://cartelera.elpais.com/assets/uploads/2019/02/18131428/C_19722.jpg', '1760712965_videoplayback.mp4', '2025-10-09 02:16:31');
 
 -- --------------------------------------------------------
 
@@ -163,8 +163,8 @@ CREATE TABLE `preferencias` (
 
 INSERT INTO `preferencias` (`id`, `usuario_id`, `genero`) VALUES
 (1, 1, 'Terror'),
-(2, 2, 'Acción'),
-(3, 3, 'Ciencia ficción');
+(3, 3, 'Ciencia ficción'),
+(5, 2, 'Comedia');
 
 -- --------------------------------------------------------
 
@@ -187,8 +187,9 @@ CREATE TABLE `usuarios` (
 INSERT INTO `usuarios` (`id`, `nombre`, `email`, `password`, `rol`) VALUES
 (1, 'Paolo', 'le@gmail.com', '$2y$10$DBUzcVO.5CcXC9ZN7KYx0.JEyzWFB8ZFZxqbNiJK9AFcU6BG8l0xu', 'usuario'),
 (2, 'less', 'adanaquemazaleslyegianella25@gmail.com', '$2y$10$eFEvWWt8g1eaJSifpEs81epBOc2oEbTuFDeruN7XCyFv8MjrMPemW', 'usuario'),
-(3, 'Administrador', 'admin@gmail.com', 'admin123', 'admin'),
-(4, 'Deybi', 'deybi@gmail.com', '$2y$10$72YLzAI.W9EY8744mC1ltOcWky7FRbP9SohRVN.KXIc4Pbr88Qjfm', 'usuario');
+(3, 'Administrador', 'admin@gmail.com', 'admin123', 'usuario'),
+(4, 'Deybi', 'deybi@gmail.com', '$2y$10$72YLzAI.W9EY8744mC1ltOcWky7FRbP9SohRVN.KXIc4Pbr88Qjfm', 'usuario'),
+(5, 'ADMINISTRADOR', 'admin@example.com', '$2y$10$ECZ8HuQu4mEtDtVWC7TISubVjw3QEPY6AM1Z/UiChh8x3EAzJmoLK', 'admin');
 
 -- --------------------------------------------------------
 
@@ -281,13 +282,13 @@ ALTER TABLE `peliculas`
 -- AUTO_INCREMENT de la tabla `preferencias`
 --
 ALTER TABLE `preferencias`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `valoraciones`
@@ -318,7 +319,6 @@ ALTER TABLE `preferencias`
 ALTER TABLE `valoraciones`
   ADD CONSTRAINT `valoraciones_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `valoraciones_ibfk_2` FOREIGN KEY (`pelicula_id`) REFERENCES `peliculas` (`id`) ON DELETE CASCADE;
-
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
