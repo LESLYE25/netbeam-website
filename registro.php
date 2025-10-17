@@ -53,19 +53,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     </div>
 </div>
-
-  <footer>
-    <p>¿Preguntas? Llama al 900-000-000</p>
-    <div class="links">
-      <ul>
-        <li><a href="#">Preguntas frecuentes</a></li>
-        <li><a href="#">Centro de ayuda</a></li>
-        <li><a href="#">Términos de uso</a></li>
-        <li><a href="#">Privacidad</a></li>
-        <li><a href="#">Preferencias de cookies</a></li>
-        <li><a href="#">Información corporativa</a></li>
-      </ul>
-    </div>
-  </footer>
 </body>
 </html>

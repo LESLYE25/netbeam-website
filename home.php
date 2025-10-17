@@ -8,6 +8,12 @@ if (!isset($_SESSION['usuario_id'])) {
     exit();
 }
 
+// Si el usuario es admin, redirigir al panel de administración
+if (isset($_SESSION['usuario_rol']) && $_SESSION['usuario_rol'] === 'admin') {
+    header("Location: admin/admin.php");
+    exit();
+}
+
 // VERIFICAR SI EL USUARIO TIENE PREFERENCIAS CONFIGURADAS
 $usuario_id = $_SESSION['usuario_id'];
 $sql_verificar_preferencias = "SELECT COUNT(*) as total FROM preferencias WHERE usuario_id = ?";
@@ -1391,7 +1397,14 @@ header img.logo {
         <div class="carrusel" id="carruselDestacadas">
             <?php foreach($peliculas_carrusel as $p): ?>
                 <div class="carrusel-item" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
-                    <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                    <?php 
+                    // Manejar tanto URLs como archivos locales para el poster
+                    $poster_src = $p['poster'];
+                    if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                        $poster_src = "admin/uploads/posters/" . $p['poster'];
+                    }
+                    ?>
+                    <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/350x300/333/fff?text=Poster+No+Disponible'">
                     <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                             onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                             title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1418,7 +1431,14 @@ header img.logo {
     <div class="row" id="miListaRow">
         <?php foreach($mi_lista as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>, event)">
-                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <?php 
+                // Manejar tanto URLs como archivos locales para el poster
+                $poster_src = $p['poster'];
+                if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                    $poster_src = "admin/uploads/posters/" . $p['poster'];
+                }
+                ?>
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
                 <button class="lista-btn en-lista" onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" title="Quitar de Mi Lista">✓</button>
                 <div class="card-overlay">
                     <div class="card-title"><?= $p['titulo'] ?></div>
@@ -1449,7 +1469,14 @@ header img.logo {
     <div class="row" id="row-populares">
         <?php foreach($peliculas_populares as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
-                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <?php 
+                // Manejar tanto URLs como archivos locales para el poster
+                $poster_src = $p['poster'];
+                if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                    $poster_src = "admin/uploads/posters/" . $p['poster'];
+                }
+                ?>
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                         title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1475,7 +1502,14 @@ header img.logo {
     <div class="row" id="row-recomendaciones">
         <?php foreach($peliculas_filtradas as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
-                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <?php 
+                // Manejar tanto URLs como archivos locales para el poster
+                $poster_src = $p['poster'];
+                if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                    $poster_src = "admin/uploads/posters/" . $p['poster'];
+                }
+                ?>
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                         title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1506,7 +1540,14 @@ header img.logo {
     <div class="row" id="row-<?= strtolower(str_replace(' ', '-', $gen)) ?>">
         <?php foreach($peliculas as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode(array_merge($p, ['enLista' => isset($peliculas_en_lista[$p['id']])])), ENT_QUOTES, 'UTF-8') ?>, event)">
-                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <?php 
+                // Manejar tanto URLs como archivos locales para el poster
+                $poster_src = $p['poster'];
+                if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                    $poster_src = "admin/uploads/posters/" . $p['poster'];
+                }
+                ?>
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                         title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1810,7 +1851,11 @@ function openModal(movie, event) {
     const modalListaBtn = document.getElementById('modalListaBtn');
     
     // Establecer el fondo del header del modal
-    modalHeader.style.backgroundImage = `url('${movie.imagen}')`;
+    let posterUrl = movie.poster;
+    if (!movie.poster.startsWith('http')) {
+        posterUrl = 'admin/uploads/posters/' + movie.poster;
+    }
+    modalHeader.style.backgroundImage = `url('${posterUrl}')`;
     
     // Establecer el título
     modalTitle.textContent = movie.titulo;
@@ -1818,13 +1863,15 @@ function openModal(movie, event) {
     // Establecer detalles
     modalDetails.innerHTML = `
         <span class="rating-badge">${movie.genero}</span>
+        <span>${movie.anio}</span>
+        <span>${movie.duracion || ''}</span>
         <span>${movie.likes ? `👍 ${movie.likes}` : ''}</span>
         <span>⭐ ${(Math.random() * 2 + 3).toFixed(1)}/5</span>
     `;
     
     // Establecer descripción
     modalDescription.textContent = movie.descripcion || 
-        `"${movie.titulo}" es una emocionante película del género ${movie.genero} que te mantendrá al borde de tu asiento. Con una trama envolvente y actuaciones memorables, esta producción promete horas de entretenimiento.`;
+        `"${movie.titulo}" es una emocionante película del género ${movie.genero} estrenada en ${movie.anio}. Con una trama envolvente y actuaciones memorables, esta producción promete horas de entretenimiento.`;
     
     // Configurar botón de Mi Lista en el modal
     if (movie.enLista) {
@@ -1870,7 +1917,7 @@ function cargarRecomendaciones(genero, peliculaIdActual) {
         if (recomendaciones.length > 0) {
             recommendationsGrid.innerHTML = recomendaciones.map(pelicula => `
                 <div class="recommendation-card" onclick="openModal(${JSON.stringify(pelicula).replace(/"/g, '&quot;')}, event)">
-                    <img src="${pelicula.imagen}" alt="${pelicula.titulo}">
+                    <img src="${pelicula.poster}" alt="${pelicula.titulo}">
                 </div>
             `).join('');
         } else {

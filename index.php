@@ -8,7 +8,7 @@ $usuario_id = $usuario_autenticado ? $_SESSION['usuario_id'] : null;
 
 // Obtener información del usuario actual si está autenticado
 if ($usuario_autenticado) {
-    $sql_usuario = "SELECT id, nombre FROM usuarios WHERE id = ?";
+    $sql_usuario = "SELECT id, nombre, rol FROM usuarios WHERE id = ?";
     $stmt_usuario = $conn->prepare($sql_usuario);
     $stmt_usuario->bind_param("i", $usuario_id);
     $stmt_usuario->execute();
@@ -16,8 +16,12 @@ if ($usuario_autenticado) {
     $usuario = $result_usuario->fetch_assoc();
     $stmt_usuario->close();
     
-    // Si el usuario está autenticado, redirigir a home.php
-    header("Location: home.php");
+    // Si el usuario está autenticado, redirigir según su rol
+    if ($usuario['rol'] === 'admin') {
+        header("Location: admin/admin.php");
+    } else {
+        header("Location: home.php");
+    }
     exit();
 } else {
     $usuario = ['nombre' => 'Invitado'];
@@ -46,30 +50,29 @@ foreach($generos as $gen) {
 }
 
 // IMÁGENES ESPECÍFICAS PARA EL BANNER DE BIENVENIDA
-// Aquí puedes reemplazar estas URLs con las imágenes que quieras usar
 $banner_images = [
     [
-        'url' => 'https://wallpapers.com/images/hd/1920x1080-hd-movie-1920-x-1080-4wl5v81m8azwaka6.jpg', // Reemplaza con tu imagen
+        'url' => 'https://wallpapers.com/images/hd/1920x1080-hd-movie-1920-x-1080-4wl5v81m8azwaka6.jpg',
         'title' => 'Bienvenido a Netbeam',
         'description' => 'Disfruta de las mejores películas y series. Inicia sesión para una experiencia personalizada.'
     ],
     [
-        'url' => 'https://wallpapers.com/images/high/action-movie-4000-x-2000-wallpaper-6yb1bqeuq59u47bw.webp', // Reemplaza con tu imagen
+        'url' => 'https://wallpapers.com/images/high/action-movie-4000-x-2000-wallpaper-6yb1bqeuq59u47bw.webp',
         'title' => 'Miles de títulos',
         'description' => 'Descubre contenido exclusivo disponible solo en Netbeam.'
     ],
     [
-        'url' => 'https://wallpapers.com/images/featured/pelicula-de-accion-pb93e7r343erqgtt.jpg', // Reemplaza con tu imagen
+        'url' => 'https://wallpapers.com/images/featured/pelicula-de-accion-pb93e7r343erqgtt.jpg',
         'title' => 'En cualquier dispositivo',
         'description' => 'Ve Netbeam en tu TV, computadora, tablet o smartphone.'
     ],
     [
-        'url' => 'https://wallpapers.com/images/hd/action-movie-2880-x-1800-wallpaper-hpocopuuycj62j7f.jpg', // Reemplaza con tu imagen
+        'url' => 'https://wallpapers.com/images/hd/action-movie-2880-x-1800-wallpaper-hpocopuuycj62j7f.jpg',
         'title' => 'Sin compromisos',
         'description' => 'Cancela online cuando quieras sin cargos adicionales.'
     ],
     [
-        'url' => 'https://p4.wallpaperbetter.com/wallpaper/673/107/786/up-movie-pixar-animation-studios-movies-sky-wallpaper-preview.jpg', // Reemplaza con tu imagen
+        'url' => 'https://p4.wallpaperbetter.com/wallpaper/673/107/786/up-movie-pixar-animation-studios-movies-sky-wallpaper-preview.jpg',
         'title' => 'Contenido original',
         'description' => 'Disfruta de producciones exclusivas de Netbeam.'
     ]
@@ -226,13 +229,13 @@ header img.logo {
 }
 
 .carrusel-item-title {
-    font-size: 1.3rem; /* Aumentado de 1.2rem */
+    font-size: 1.3rem;
     font-weight: bold;
     margin-bottom: 8px;
 }
 
 .carrusel-item-genre {
-    font-size: 1rem; /* Aumentado de 0.9rem */
+    font-size: 1rem;
     color: var(--netbeam-light-gray);
 }
 
@@ -457,7 +460,7 @@ header img.logo {
 .row {
     display: flex;
     overflow-x: auto;
-    gap: 12px; /* Aumentado de 8px */
+    gap: 12px;
     padding: 10px 0;
     scrollbar-width: none;
 }
@@ -467,9 +470,9 @@ header img.logo {
 }
 
 .card {
-    min-width: 180px; /* Aumentado de 150px */
-    width: 180px; /* Aumentado de 150px */
-    border-radius: 6px; /* Aumentado de 4px */
+    min-width: 180px;
+    width: 180px;
+    border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
     transition: transform 0.4s ease, z-index 0.4s;
@@ -479,7 +482,7 @@ header img.logo {
 
 .card img {
     width: 100%;
-    height: 270px; /* Aumentado de 225px */
+    height: 270px;
     object-fit: cover;
     display: block;
 }
@@ -501,7 +504,7 @@ header img.logo {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 12px; /* Aumentado de 10px */
+    padding: 12px;
 }
 
 .card:hover .card-overlay {
@@ -511,13 +514,13 @@ header img.logo {
 .card-title {
     font-weight: bold;
     margin-bottom: 5px;
-    font-size: 15px; /* Aumentado de 14px */
+    font-size: 15px;
 }
 
 .card-details {
     display: flex;
     gap: 10px;
-    font-size: 13px; /* Aumentado de 12px */
+    font-size: 13px;
     color: var(--netbeam-light-gray);
 }
 
@@ -772,12 +775,12 @@ header img.logo {
     }
     
     .card {
-        min-width: 140px; /* Aumentado de 120px */
-        width: 140px; /* Aumentado de 120px */
+        min-width: 140px;
+        width: 140px;
     }
     
     .card img {
-        height: 210px; /* Aumentado de 180px */
+        height: 210px;
     }
     
     .modal-content {
@@ -816,8 +819,8 @@ header img.logo {
     }
     
     .carrusel-item {
-        min-width: 280px; /* Aumentado de 250px */
-        height: 400px; /* Aumentado de 375px */
+        min-width: 280px;
+        height: 400px;
     }
     
     .carrusel-btn {
@@ -843,8 +846,8 @@ header img.logo {
 
 @media (max-width: 480px) {
     .carrusel-item {
-        min-width: 220px; /* Aumentado de 200px */
-        height: 315px; /* Aumentado de 300px */
+        min-width: 220px;
+        height: 315px;
     }
     
     .banner h1 {
@@ -862,12 +865,12 @@ header img.logo {
     }
     
     .card {
-        min-width: 120px; /* Aumentado de 130px */
-        width: 120px; /* Aumentado de 130px */
+        min-width: 120px;
+        width: 120px;
     }
     
     .card img {
-        height: 180px; /* Aumentado de 195px */
+        height: 180px;
     }
 }
 </style>
@@ -923,7 +926,14 @@ header img.logo {
         <div class="carrusel" id="carrusel">
             <?php foreach($peliculas_carrusel as $p): ?>
                 <div class="carrusel-item" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>, event)">
-                    <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                    <?php 
+                    // Manejar tanto URLs como archivos locales para el poster
+                    $poster_src = $p['poster'];
+                    if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                        $poster_src = "admin/uploads/posters/" . $p['poster'];
+                    }
+                    ?>
+                    <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/350x300/333/fff?text=Poster+No+Disponible'">
                     <div class="carrusel-overlay">
                         <div class="carrusel-item-title"><?= $p['titulo'] ?></div>
                         <div class="carrusel-item-genre"><?= $p['genero'] ?></div>
@@ -947,11 +957,19 @@ header img.logo {
     <div class="row">
         <?php foreach($peliculas as $p): ?>
             <div class="card" onclick="openModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>, event)">
-                <img src="<?= $p['imagen'] ?>" alt="<?= $p['titulo'] ?>">
+                <?php 
+                // Manejar tanto URLs como archivos locales para el poster
+                $poster_src = $p['poster'];
+                if (!filter_var($p['poster'], FILTER_VALIDATE_URL)) {
+                    $poster_src = "admin/uploads/posters/" . $p['poster'];
+                }
+                ?>
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
                 <div class="card-overlay">
                     <div class="card-title"><?= $p['titulo'] ?></div>
                     <div class="card-details">
                         <span><?= $p['genero'] ?></span>
+                        <span><?= $p['anio'] ?></span>
                     </div>
                 </div>
             </div>
@@ -1118,7 +1136,7 @@ function goToCarruselSlide(index) {
 
 function updateCarrusel() {
     const carrusel = document.getElementById('carrusel');
-    const itemWidth = carruselItems[0].offsetWidth + 15; // + gap aumentado
+    const itemWidth = carruselItems[0].offsetWidth + 15; // + gap
     const translateX = -currentCarruselIndex * itemWidth * itemsPerView;
     carrusel.style.transform = `translateX(${translateX}px)`;
     
@@ -1199,7 +1217,11 @@ function openModal(movie, event) {
     const modalDescription = document.getElementById('modalDescription');
     
     // Establecer el fondo del header del modal
-    modalHeader.style.backgroundImage = `url('${movie.imagen}')`;
+    let posterUrl = movie.poster;
+    if (!movie.poster.startsWith('http')) {
+        posterUrl = 'admin/uploads/posters/' + movie.poster;
+    }
+    modalHeader.style.backgroundImage = `url('${posterUrl}')`;
     
     // Establecer el título
     modalTitle.textContent = movie.titulo;
@@ -1207,12 +1229,14 @@ function openModal(movie, event) {
     // Establecer detalles
     modalDetails.innerHTML = `
         <span class="rating-badge">${movie.genero}</span>
+        <span>${movie.anio}</span>
+        <span>${movie.duracion || ''}</span>
         <span>⭐ ${(Math.random() * 2 + 3).toFixed(1)}/5</span>
     `;
     
     // Establecer descripción
     modalDescription.textContent = movie.descripcion || 
-        `"${movie.titulo}" es una emocionante película del género ${movie.genero} que te mantendrá al borde de tu asiento. Con una trama envolvente y actuaciones memorables, esta producción promete horas de entretenimiento.`;
+        `"${movie.titulo}" es una emocionante película del género ${movie.genero} estrenada en ${movie.anio}. Con una trama envolvente y actuaciones memorables, esta producción promete horas de entretenimiento.`;
     
     // Mostrar el modal
     modal.style.display = 'flex';
@@ -1283,14 +1307,6 @@ document.addEventListener('DOMContentLoaded', function() {
             closeLoginModal();
         }
     });
-});
-
-// Función auxiliar para prevenir clics en botones de lista
-document.addEventListener('click', function(event) {
-    if (event.target.closest('.lista-btn')) {
-        event.stopPropagation();
-        event.preventDefault();
-    }
 });
 
 // Auto-avance del carrusel de películas
