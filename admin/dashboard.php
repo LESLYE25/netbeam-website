@@ -326,6 +326,5 @@ new Chart(ctxBar, {
   }
 });
 </script>
-
 </body>
 </html>
