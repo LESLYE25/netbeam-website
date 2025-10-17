@@ -253,5 +253,7 @@ $generos = $conn->query("SELECT DISTINCT genero FROM peliculas ORDER BY genero A
       }, 3500);
     }
   </script>
+  
 </body>
+
 </html>
