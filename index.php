@@ -53,18 +53,18 @@ foreach($generos as $gen) {
 $banner_images = [
     [
         'url' => 'https://wallpapers.com/images/hd/1920x1080-hd-movie-1920-x-1080-4wl5v81m8azwaka6.jpg',
-        'title' => 'Bienvenido a Netbeam',
+        'title' => 'Bienvenido a Flixter',
         'description' => 'Disfruta de las mejores películas y series. Inicia sesión para una experiencia personalizada.'
     ],
     [
         'url' => 'https://wallpapers.com/images/high/action-movie-4000-x-2000-wallpaper-6yb1bqeuq59u47bw.webp',
         'title' => 'Miles de títulos',
-        'description' => 'Descubre contenido exclusivo disponible solo en Netbeam.'
+        'description' => 'Descubre contenido exclusivo disponible solo en Flixter.'
     ],
     [
         'url' => 'https://wallpapers.com/images/featured/pelicula-de-accion-pb93e7r343erqgtt.jpg',
         'title' => 'En cualquier dispositivo',
-        'description' => 'Ve Netbeam en tu TV, computadora, tablet o smartphone.'
+        'description' => 'Ve Flixter en tu TV, computadora, tablet o smartphone.'
     ],
     [
         'url' => 'https://wallpapers.com/images/hd/action-movie-2880-x-1800-wallpaper-hpocopuuycj62j7f.jpg',
@@ -74,7 +74,7 @@ $banner_images = [
     [
         'url' => 'https://p4.wallpaperbetter.com/wallpaper/673/107/786/up-movie-pixar-animation-studios-movies-sky-wallpaper-preview.jpg',
         'title' => 'Contenido original',
-        'description' => 'Disfruta de producciones exclusivas de Netbeam.'
+        'description' => 'Disfruta de producciones exclusivas de Flixter.'
     ]
 ];
 ?>
@@ -83,15 +83,15 @@ $banner_images = [
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Netbeam 🎬</title>
+<title>Flixter 🎬</title>
 <link rel="shortcut icon" type="image/jpg" href="img/image.png" />
 <style>
 :root {
-    --netbeam-red: #e50914;
-    --netbeam-dark: #141414;
-    --netbeam-gray: #2f2f2f;
-    --netbeam-light-gray: #b3b3b3;
-    --netbeam-white: #ffffff;
+    --Flixter-red: #e50914;
+    --Flixter-dark: #141414;
+    --Flixter-gray: #2f2f2f;
+    --Flixter-light-gray: #b3b3b3;
+    --Flixter-white: #ffffff;
 }
 
 * {
@@ -99,8 +99,8 @@ $banner_images = [
 }
 
 body {
-    background: var(--netbeam-dark);
-    color: var(--netbeam-white);
+    background: var(--Flixter-dark);
+    color: var(--Flixter-white);
     font-family: 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 0;
@@ -123,11 +123,11 @@ header {
 }
 
 header.scrolled {
-    background-color: var(--netbeam-dark);
+    background-color: var(--Flixter-dark);
 }
 
 header img.logo {
-    height: 30px;
+    height: 60px;
 }
 
 /* Botones de autenticación en el header */
@@ -156,7 +156,7 @@ header img.logo {
 
 .nav-button.secondary {
     background: transparent;
-    border: 1px solid var(--netbeam-light-gray);
+    border: 1px solid var(--Flixter-light-gray);
 }
 
 .nav-button.secondary:hover {
@@ -174,7 +174,7 @@ header img.logo {
     font-size: 1.8rem;
     margin-bottom: 20px;
     font-weight: 600;
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
 }
 
 .carrusel-container {
@@ -236,7 +236,7 @@ header img.logo {
 
 .carrusel-item-genre {
     font-size: 1rem;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
 }
 
 .carrusel-btn {
@@ -281,13 +281,13 @@ header img.logo {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: var(--netbeam-light-gray);
+    background: var(--Flixter-light-gray);
     cursor: pointer;
     transition: background 0.3s;
 }
 
 .carrusel-indicator.active {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
 }
 
 /* BANNER CARRUSEL - Estilo Netflix */
@@ -371,8 +371,8 @@ header img.logo {
 }
 
 .btn-primary {
-    background-color: var(--netbeam-white);
-    color: var(--netbeam-dark);
+    background-color: var(--Flixter-white);
+    color: var(--Flixter-dark);
 }
 
 .btn-primary:hover {
@@ -381,7 +381,7 @@ header img.logo {
 
 .btn-secondary {
     background-color: rgba(109, 109, 110, 0.7);
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
 }
 
 .btn-secondary:hover {
@@ -408,7 +408,7 @@ header img.logo {
 }
 
 .banner-indicator.active {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
     transform: scale(1.2);
 }
 
@@ -521,7 +521,7 @@ header img.logo {
     display: flex;
     gap: 10px;
     font-size: 13px;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
 }
 
 /* MODAL DE PELÍCULA */
@@ -540,7 +540,7 @@ header img.logo {
 }
 
 .modal-content {
-    background-color: var(--netbeam-dark);
+    background-color: var(--Flixter-dark);
     border-radius: 10px;
     width: 90%;
     max-width: 600px;
@@ -568,14 +568,14 @@ header img.logo {
     left: 0;
     right: 0;
     height: 150px;
-    background: linear-gradient(to top, var(--netbeam-dark), transparent);
+    background: linear-gradient(to top, var(--Flixter-dark), transparent);
 }
 
 .modal-close {
     position: absolute;
     top: 15px;
     right: 15px;
-    background: var(--netbeam-dark);
+    background: var(--Flixter-dark);
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -611,13 +611,13 @@ header img.logo {
     display: flex;
     gap: 15px;
     margin-bottom: 20px;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
     align-items: center;
     flex-wrap: wrap;
 }
 
 .rating-badge {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
@@ -673,7 +673,7 @@ header img.logo {
 }
 
 .login-modal-content {
-    background-color: var(--netbeam-dark);
+    background-color: var(--Flixter-dark);
     border-radius: 10px;
     width: 90%;
     max-width: 450px;
@@ -688,7 +688,7 @@ header img.logo {
     right: 15px;
     background: transparent;
     border: none;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
     font-size: 24px;
     cursor: pointer;
     width: 40px;
@@ -713,13 +713,13 @@ header img.logo {
 .login-modal-title {
     font-size: 1.8rem;
     margin-bottom: 15px;
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
 }
 
 .login-modal-text {
     font-size: 1rem;
     margin-bottom: 30px;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
     line-height: 1.5;
 }
 
@@ -752,8 +752,8 @@ header img.logo {
 
 .login-modal-btn.secondary {
     background: transparent;
-    border: 2px solid var(--netbeam-light-gray);
-    color: var(--netbeam-white);
+    border: 2px solid var(--Flixter-light-gray);
+    color: var(--Flixter-white);
 }
 
 .login-modal-btn.secondary:hover {
@@ -1003,13 +1003,13 @@ header img.logo {
     <div class="modal-content">
         <button class="modal-close" onclick="closeInfoModal()">×</button>
         <div class="modal-body">
-            <h2 class="modal-title">Sobre Netbeam</h2>
+            <h2 class="modal-title">Sobre Flixter</h2>
             <div class="modal-details">
                 <span class="rating-badge">Plataforma</span>
                 <span>⭐ 4.8/5</span>
             </div>
             <p class="modal-description">
-                Netbeam es tu destino para disfrutar de las mejores películas y series. Con una interfaz intuitiva 
+                Flixter es tu destino para disfrutar de las mejores películas y series. Con una interfaz intuitiva 
                 y contenido actualizado regularmente, ofrecemos una experiencia de entretenimiento excepcional.
                 <br><br>
                 Características principales:
@@ -1035,7 +1035,7 @@ header img.logo {
         <button class="login-modal-close" onclick="closeLoginModal()">×</button>
         <div class="login-modal-icon">🔒</div>
         <h2 class="login-modal-title">Inicia sesión para continuar</h2>
-        <p class="login-modal-text">Para acceder a esta función necesitas tener una cuenta en Netbeam. Únete a nuestra comunidad para disfrutar de todas las características.</p>
+        <p class="login-modal-text">Para acceder a esta función necesitas tener una cuenta en Flixter. Únete a nuestra comunidad para disfrutar de todas las características.</p>
         <div class="login-modal-buttons">
             <button class="login-modal-btn primary" onclick="redirectToLogin()">Iniciar Sesión</button>
             <button class="login-modal-btn secondary" onclick="redirectToRegister()">Crear Cuenta</button>

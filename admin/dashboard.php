@@ -37,7 +37,7 @@ $yearsCounts = json_encode(array_column($yearsData, 'total'));
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard Analytics - Netbeam</title>
+<title>Dashboard Analytics - Flixter</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="../css/style.css">
 <link rel="stylesheet" href="admin.css">
@@ -148,7 +148,7 @@ $yearsCounts = json_encode(array_column($yearsData, 'total'));
     </div>
 
     <footer class="admin-footer" style="margin-top:12px; text-align:center; padding:10px; color:#666; font-size:11px;">
-      <p>© 2025 Netbeam — Panel de administración de películas</p>
+      <p>© 2025 Flixter — Panel de administración de películas</p>
     </footer>
   </main>
 </div>

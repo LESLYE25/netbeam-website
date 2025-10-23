@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="contenido">
         <nav>
-            <img class="logo" src="./img/image2.png" alt="netbeamLogo" />
+            <img class="logo" src="./img/image2.png" alt="FlixterLogo" />
         </nav>
         <div class="caja">
             <h2>Iniciar sesión</h2>
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- /FORMULARIO -->
 
             <div class="subscripcion">
-                <p>¿Todavía sin Netbeam? 
+                <p>¿Todavía sin Flixter? 
                     <a href="registro.php"><span>Registrate ya.</span></a>
                 </p>
             </div>

@@ -245,7 +245,7 @@ $banner_images = [
     [
         'url' => 'https://wallpapers.com/images/hd/1920x1080-hd-movie-1920-x-1080-4wl5v81m8azwaka6.jpg',
         'title' => 'Bienvenido de vuelta, ' . $usuario['nombre'],
-        'description' => 'Continúa disfrutando de Netbeam con recomendaciones personalizadas.'
+        'description' => 'Continúa disfrutando de Flixter con recomendaciones personalizadas.'
     ],
     [
         'url' => 'https://wallpapers.com/images/high/action-movie-4000-x-2000-wallpaper-6yb1bqeuq59u47bw.webp',
@@ -264,15 +264,15 @@ $banner_images = [
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Netbeam 🎬 - <?= $usuario['nombre'] ?></title>
+<title>Flixter 🎬 - <?= $usuario['nombre'] ?></title>
 <link rel="shortcut icon" type="image/jpg" href="img/image.png" />
 <style>
 :root {
-    --netbeam-red: #e50914;
-    --netbeam-dark: #141414;
-    --netbeam-gray: #2f2f2f;
-    --netbeam-light-gray: #b3b3b3;
-    --netbeam-white: #ffffff;
+    --Flixter-red: #e50914;
+    --Flixter-dark: #141414;
+    --Flixter-gray: #2f2f2f;
+    --Flixter-light-gray: #b3b3b3;
+    --Flixter-white: #ffffff;
 }
 
 * {
@@ -280,8 +280,8 @@ $banner_images = [
 }
 
 body {
-    background: var(--netbeam-dark);
-    color: var(--netbeam-white);
+    background: var(--Flixter-dark);
+    color: var(--Flixter-white);
     font-family: 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 0;
@@ -304,11 +304,11 @@ header {
 }
 
 header.scrolled {
-    background-color: var(--netbeam-dark);
+    background-color: var(--Flixter-dark);
 }
 
 header img.logo {
-    height: 30px;
+    height: 60px;
 }
 
 /* Contenedor izquierdo (logo + buscador) */
@@ -328,7 +328,7 @@ header img.logo {
 .header-search input[type="text"] {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.08);
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
     padding: 8px 10px;
     border-radius: 4px;
     width: 260px;
@@ -373,18 +373,18 @@ header img.logo {
 }
 
 .nav-links a {
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
     text-decoration: none;
     font-size: 14px;
     transition: color 0.3s;
 }
 
 .nav-links a:hover {
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
 }
 
 .nav-links a.active {
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
     font-weight: bold;
 }
 
@@ -396,7 +396,7 @@ header img.logo {
 }
 
 .usuario {
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -409,7 +409,7 @@ header img.logo {
     width: 32px;
     height: 32px;
     border-radius: 4px;
-    background-color: var(--netbeam-red);
+    background-color: var(--Flixter-red);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -552,8 +552,8 @@ header img.logo {
 }
 
 .btn-primary {
-    background-color: var(--netbeam-white);
-    color: var(--netbeam-dark);
+    background-color: var(--Flixter-white);
+    color: var(--Flixter-dark);
 }
 
 .btn-primary:hover {
@@ -562,7 +562,7 @@ header img.logo {
 
 .btn-secondary {
     background-color: rgba(109, 109, 110, 0.7);
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
 }
 
 .btn-secondary:hover {
@@ -589,7 +589,7 @@ header img.logo {
 }
 
 .banner-indicator.active {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
     transform: scale(1.2);
 }
 
@@ -635,7 +635,7 @@ header img.logo {
     font-size: 1.8rem;
     margin-bottom: 20px;
     font-weight: 600;
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
 }
 
 .carrusel-container {
@@ -697,7 +697,7 @@ header img.logo {
 
 .carrusel-item-genre {
     font-size: 1rem;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
 }
 
 .carrusel-btn {
@@ -742,13 +742,13 @@ header img.logo {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: var(--netbeam-light-gray);
+    background: var(--Flixter-light-gray);
     cursor: pointer;
     transition: background 0.3s;
 }
 
 .carrusel-indicator.active {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
 }
 
 /* SECCIONES */
@@ -830,7 +830,7 @@ header img.logo {
     display: flex;
     gap: 10px;
     font-size: 13px;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
 }
 
 .lista-btn {
@@ -857,12 +857,12 @@ header img.logo {
 }
 
 .lista-btn.en-lista {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
     opacity: 1;
 }
 
 .lista-btn:hover {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
 }
 
 /* Botones de navegación para secciones por género */
@@ -919,7 +919,7 @@ header img.logo {
 }
 
 .modal-content {
-    background-color: var(--netbeam-dark);
+    background-color: var(--Flixter-dark);
     border-radius: 10px;
     width: 90%;
     max-width: 600px;
@@ -947,14 +947,14 @@ header img.logo {
     left: 0;
     right: 0;
     height: 150px;
-    background: linear-gradient(to top, var(--netbeam-dark), transparent);
+    background: linear-gradient(to top, var(--Flixter-dark), transparent);
 }
 
 .modal-close {
     position: absolute;
     top: 15px;
     right: 15px;
-    background: var(--netbeam-dark);
+    background: var(--Flixter-dark);
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -990,13 +990,13 @@ header img.logo {
     display: flex;
     gap: 15px;
     margin-bottom: 20px;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
     align-items: center;
     flex-wrap: wrap;
 }
 
 .rating-badge {
-    background: var(--netbeam-red);
+    background: var(--Flixter-red);
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
@@ -1020,8 +1020,8 @@ header img.logo {
 
 .modal-lista-btn {
     background: transparent;
-    border: 2px solid var(--netbeam-light-gray);
-    color: var(--netbeam-white);
+    border: 2px solid var(--Flixter-light-gray);
+    color: var(--Flixter-white);
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
@@ -1052,13 +1052,13 @@ header img.logo {
 }
 
 .modal-lista-btn.en-lista {
-    background: var(--netbeam-red);
-    border-color: var(--netbeam-red);
+    background: var(--Flixter-red);
+    border-color: var(--Flixter-red);
 }
 
 .modal-lista-btn:hover {
-    background: var(--netbeam-red);
-    border-color: var(--netbeam-red);
+    background: var(--Flixter-red);
+    border-color: var(--Flixter-red);
 }
 
 .valoracion-buttons {
@@ -1109,7 +1109,7 @@ header img.logo {
 .modal-recommendations h3 {
     font-size: 1.2rem;
     margin-bottom: 15px;
-    color: var(--netbeam-white);
+    color: var(--Flixter-white);
 }
 
 .recommendations-grid {
@@ -1172,7 +1172,7 @@ header img.logo {
 }
 
 .user-modal-content {
-    background-color: var(--netbeam-dark);
+    background-color: var(--Flixter-dark);
     border-radius: 6px;
     width: 90%;
     max-width: 500px;
@@ -1215,7 +1215,7 @@ header img.logo {
     width: 50px;
     height: 50px;
     border-radius: 4px;
-    background-color: var(--netbeam-red);
+    background-color: var(--Flixter-red);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1231,13 +1231,13 @@ header img.logo {
 
 .user-preferences {
     font-size: 0.9rem;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
     text-align: right;
 }
 
 /* Indicador de preferencias del usuario actual */
 .preferences-indicator {
-    background-color: var(--netbeam-red);
+    background-color: var(--Flixter-red);
     color: white;
     padding: 5px 10px;
     border-radius: 15px;
@@ -1254,7 +1254,7 @@ header img.logo {
 .empty-list {
     text-align: center;
     padding: 40px;
-    color: var(--netbeam-light-gray);
+    color: var(--Flixter-light-gray);
 }
 
 .empty-list i {
@@ -1381,7 +1381,6 @@ header img.logo {
 </head>
 <body>
 <a href="login.php" class="boton-iniciar-sesion">
-    ¡Hola, inicia sesión!
 </a>
 <header>
     <div class="header-left">
@@ -1460,7 +1459,6 @@ header img.logo {
             <h1><?= $banner['title'] ?></h1>
             <p><?= $banner['description'] ?></p>
             <div class="banner-buttons">
-                <button class="btn btn-primary">▶ Reproducir</button>
                 <button class="btn btn-secondary" onclick="openInfoModal()">ⓘ Más información</button>
             </div>
         </div>
@@ -1483,13 +1481,13 @@ header img.logo {
     <div class="modal-content">
         <button class="modal-close" onclick="closeInfoModal()">×</button>
         <div class="modal-body">
-            <h2 class="modal-title">Sobre Netbeam</h2>
+            <h2 class="modal-title">Sobre Flixter</h2>
             <div class="modal-details">
                 <span class="rating-badge">Plataforma Premium</span>
                 <span>⭐ 4.8/5</span>
             </div>
             <p class="modal-description">
-                Netbeam es tu destino premium para disfrutar de las mejores películas y series. Con una interfaz intuitiva 
+                Flixter es tu destino premium para disfrutar de las mejores películas y series. Con una interfaz intuitiva 
                 y contenido actualizado regularmente, ofrecemos una experiencia de entretenimiento excepcional.
                 <br><br>
                 <strong>Características exclusivas para usuarios registrados:</strong>

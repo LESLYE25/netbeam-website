@@ -38,7 +38,7 @@ $generos = $conn->query("SELECT DISTINCT genero FROM peliculas ORDER BY genero A
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panel de administración - Netbeam</title>
+  <title>Panel de administración - Flixter</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="admin.css">
@@ -162,7 +162,7 @@ $generos = $conn->query("SELECT DISTINCT genero FROM peliculas ORDER BY genero A
       </section>
 
       <footer class="admin-footer">
-        <p>Netbeam — panel de administración</p>
+        <p>Flixter — panel de administración</p>
       </footer>
     </main>
   </div>
