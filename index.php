@@ -933,7 +933,7 @@ header img.logo {
                         $poster_src = "admin/uploads/posters/" . $p['poster'];
                     }
                     ?>
-                    <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/350x300/333/fff?text=Poster+No+Disponible'">
+                    <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                     <div class="carrusel-overlay">
                         <div class="carrusel-item-title"><?= $p['titulo'] ?></div>
                         <div class="carrusel-item-genre"><?= $p['genero'] ?></div>
@@ -964,7 +964,7 @@ header img.logo {
                     $poster_src = "admin/uploads/posters/" . $p['poster'];
                 }
                 ?>
-                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                 <div class="card-overlay">
                     <div class="card-title"><?= $p['titulo'] ?></div>
                     <div class="card-details">

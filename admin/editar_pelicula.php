@@ -8,7 +8,7 @@ if ($id <= 0) {
     exit;
 }
 
-// Obtener datos actuales
+// Obtener datos actuales de la película
 $stmt = $conn->prepare("SELECT * FROM peliculas WHERE id = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
@@ -20,301 +20,350 @@ if (!$peli) {
     die("Película no encontrada.");
 }
 
+// Obtener lista de géneros (necesario para el dropdown)
+$generos_result = $conn->query("SELECT id, nombre FROM generos ORDER BY nombre ASC");
+
+// Los géneros actuales de la película están almacenados como una cadena separada por comas
+$generos_actuales_array = explode(', ', $peli['genero'] ?? '');
+
 // ---- Procesar envío POST ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validar y sanitizar datos
     $titulo = trim($_POST['titulo']);
-    $genero = trim($_POST['genero']);
-    $descripcion = trim($_POST['descripcion']);
-    $anio = intval($_POST['anio']);
-    $duracion = trim($_POST['duracion']); // Ahora es string para formato HH:MM
+    $generos_seleccionados = isset($_POST['generos']) ? $_POST['generos'] : [];
+    // Guarda hasta 3 géneros como una cadena separada por comas
+    $genero_cadena = implode(', ', array_slice($generos_seleccionados, 0, 3)); 
     
-    // Validar formato de duración (HH:MM)
-    if (!preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $duracion)) {
-        $error = "Formato de duración inválido. Use HH:MM (ej: 01:44)";
+    $descripcion = trim($_POST['descripcion'] ?? '');
+    $anio = intval($_POST['anio']);
+    $duracion = trim($_POST['duracion']);
+
+    // Validar formato de duración
+    if (!preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $duracion) && 
+        !preg_match('/^[0-5]?[0-9]:[0-5][0-9]$/', $duracion)) {
+        $error = "Formato de duración inválido. Use HH:MM o MM:SS (ej: 01:44 o 10:30)";
         header('Location: editar_pelicula.php?id=' . $id . '&error=' . urlencode($error));
         exit;
     }
 
-    // --- POSTER: URL o archivo ---
+    // --- Poster ---
     $posterNuevo = $peli['poster'];
-    
-    // Si se proporciona URL de poster
+    $error = '';
+
     if (!empty($_POST['poster_url'])) {
+        // Lógica para URL del poster
         $poster_url = filter_var(trim($_POST['poster_url']), FILTER_SANITIZE_URL);
         if (filter_var($poster_url, FILTER_VALIDATE_URL)) {
             $posterNuevo = $poster_url;
-            // Eliminar archivo anterior si existía
+            // Eliminar poster anterior si era un archivo local
             if ($peli['poster'] && !filter_var($peli['poster'], FILTER_VALIDATE_URL) && file_exists(__DIR__ . "/uploads/posters/{$peli['poster']}")) {
                 unlink(__DIR__ . "/uploads/posters/{$peli['poster']}");
             }
+        } else {
+            $error = "URL del poster no válida";
+        }
+    } elseif (isset($_FILES['poster_file']) && $_FILES['poster_file']['error'] === UPLOAD_ERR_OK) {
+        // Lógica para subir nuevo archivo de poster
+        $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $file_type = $_FILES['poster_file']['type'];
+        $file_size = $_FILES['poster_file']['size'];
+
+        if (in_array($file_type, $allowed_types) && $file_size <= 5 * 1024 * 1024) {
+            $ext = pathinfo($_FILES['poster_file']['name'], PATHINFO_EXTENSION);
+            $poster_name = time() . '_' . uniqid() . '.' . $ext;
+            $poster_path = __DIR__ . "/uploads/posters/" . $poster_name;
+
+            if (move_uploaded_file($_FILES['poster_file']['tmp_name'], $poster_path)) {
+                $posterNuevo = $poster_name;
+                // Eliminar poster anterior si era un archivo local
+                if ($peli['poster'] && !filter_var($peli['poster'], FILTER_VALIDATE_URL) && file_exists(__DIR__ . "/uploads/posters/{$peli['poster']}")) {
+                    unlink(__DIR__ . "/uploads/posters/{$peli['poster']}");
+                }
+            } else {
+                $error = "Error al subir el archivo de poster";
+            }
+        } else {
+            $error = "Tipo de archivo de poster no permitido o tamaño muy grande (máx 5MB)";
         }
     }
-    // Si se sube archivo de poster
-    elseif (isset($_FILES['poster_file']) && $_FILES['poster_file']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['poster_file']['name'], PATHINFO_EXTENSION));
-        $allowedImg = ['jpg','jpeg','png','webp'];
-        if (in_array($ext, $allowedImg)) {
-            $posterNuevo = time() . '_' . preg_replace('/[^a-z0-9_\-\.]/i', '', $_FILES['poster_file']['name']);
-            move_uploaded_file($_FILES['poster_file']['tmp_name'], __DIR__ . "/uploads/posters/$posterNuevo");
-            // Eliminar archivo anterior si existía
-            if ($peli['poster'] && !filter_var($peli['poster'], FILTER_VALIDATE_URL) && file_exists(__DIR__ . "/uploads/posters/{$peli['poster']}")) {
-                unlink(__DIR__ . "/uploads/posters/{$peli['poster']}");
+    // Si no se proporcionó ni URL ni archivo, se mantiene el poster original.
+    
+    if (!empty($error)) {
+        header('Location: editar_pelicula.php?id=' . $id . '&error=' . urlencode($error));
+        exit;
+    }
+
+    // --- Video ---
+    $videoNuevo = $peli['video'];
+    if (isset($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK) {
+        // Lógica para subir nuevo video
+        $allowed_video_types = ['video/mp4', 'video/webm', 'video/ogg'];
+        $video_type = $_FILES['video']['type'];
+        $video_size = $_FILES['video']['size'];
+            
+        if (in_array($video_type, $allowed_video_types) && $video_size <= 100 * 1024 * 1024) {
+            $ext = pathinfo($_FILES['video']['name'], PATHINFO_EXTENSION);
+            $video_name = time() . '_' . uniqid() . '.' . $ext;
+            $video_path = __DIR__ . "/uploads/videos/" . $video_name;
+            
+            if (move_uploaded_file($_FILES['video']['tmp_name'], $video_path)) {
+                $videoNuevo = $video_name;
+                // Eliminar video anterior
+                if ($peli['video'] && file_exists(__DIR__ . "/uploads/videos/{$peli['video']}")) {
+                    unlink(__DIR__ . "/uploads/videos/{$peli['video']}");
+                }
+            } else {
+                $error = "Error al subir el archivo de video";
             }
+        } else {
+            $error = "Tipo de video no permitido o tamaño muy grande (máx 100MB)";
         }
     }
 
-    // --- VIDEO ---
-    $videoNuevo = $peli['video'];
-    if (isset($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['video']['name'], PATHINFO_EXTENSION));
-        $allowedVid = ['mp4','webm','ogg'];
-        if (in_array($ext, $allowedVid)) {
-            $videoNuevo = time() . '_' . preg_replace('/[^a-z0-9_\-\.]/i', '', $_FILES['video']['name']);
-            move_uploaded_file($_FILES['video']['tmp_name'], __DIR__ . "/uploads/videos/$videoNuevo");
-            if ($peli['video'] && file_exists(__DIR__ . "/uploads/videos/{$peli['video']}")) {
-                unlink(__DIR__ . "/uploads/videos/{$peli['video']}");
-            }
-        }
+    if (!empty($error)) {
+        header('Location: editar_pelicula.php?id=' . $id . '&error=' . urlencode($error));
+        exit;
     }
 
     // --- Actualizar en DB ---
+    // NOTA: se usa $genero_cadena en lugar de $genero
     $stmt = $conn->prepare("UPDATE peliculas SET titulo=?, genero=?, descripcion=?, anio=?, duracion=?, poster=?, video=? WHERE id=?");
-    $stmt->bind_param("sssisssi", $titulo, $genero, $descripcion, $anio, $duracion, $posterNuevo, $videoNuevo, $id);
+    $stmt->bind_param("sssisssi", $titulo, $genero_cadena, $descripcion, $anio, $duracion, $posterNuevo, $videoNuevo, $id);
     
     if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Película actualizada correctamente.";
         header('Location: admin.php?updated=1');
     } else {
-        header('Location: editar_pelicula.php?id=' . $id . '&error=' . urlencode($stmt->error));
+        header('Location: editar_pelicula.php?id=' . $id . '&error=' . urlencode("Error en DB: " . $stmt->error));
     }
     $stmt->close();
     exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Editar película - Netbeam</title>
-  <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="admin.css">
-  <style>
-    .poster-options { display: flex; gap: 20px; flex-wrap: wrap; }
-    .poster-option { flex: 1; min-width: 250px; }
-    .mini-poster { max-width: 200px; max-height: 300px; margin: 10px 0; }
-    .current-poster { background: #f5f5f5; padding: 15px; border-radius: 5px; }
-    .preview-video { width: 100%; max-width: 300px; margin-top: 8px; }
-    #durationInfo { margin-top: 5px; font-size: 14px; color: #666; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Editar película - Netbeam</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        /* Agregamos el estilo de la vista previa de video */
+        .preview-video { width: 100%; max-width: 300px; max-height: 250px; margin-top: 8px; object-fit: contain; border: 1px solid #444; border-radius: 5px; }
+        .poster-options { display: flex; gap: 20px; flex-wrap: wrap; }
+        .poster-option { flex: 1; min-width: 250px; }
+        .mini-poster { max-width: 200px; max-height: 300px; margin: 10px 0; object-fit: cover; }
+        .current-poster { background: #1a1a1a; padding: 15px; border-radius: 5px; }
+        .error-message { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #f5c6cb; }
+        
+        /* Estilos del Dropdown Personalizado (Copiar de subir_pelicula.php si no están en admin.css) */
+        /* Si los estilos ya están en admin.css no es necesario, pero los dejo aquí por si acaso */
+        .custom-dropdown { position: relative; width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #fff; cursor: pointer; user-select: none; transition: border 0.3s; }
+        .custom-dropdown:hover { border-color: #e50914; }
+        .dropdown-selected { padding: 10px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .dropdown-selected::after { content: "▼"; font-size: 12px; color: #aaa; margin-left: 10px; transition: transform 0.3s; }
+        .custom-dropdown.active .dropdown-selected::after { transform: rotate(-180deg); color: #e50914; }
+        .dropdown-options { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: #222; border: 1px solid #333; border-radius: 8px; margin-top: 4px; z-index: 10; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+        .custom-dropdown.active .dropdown-options { display: block; }
+        .dropdown-option { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #333; transition: background 0.2s; }
+        .dropdown-option:last-child { border-bottom: none; }
+        .dropdown-option:hover { background: #333; }
+        .dropdown-option input[type="checkbox"] { display: none; }
+        .dropdown-option span { flex: 1; }
+        .dropdown-option input:checked + span { color: #e50914; font-weight: 600; }
+    </style>
 </head>
 <body>
-  <div class="admin-layout">
-    <aside class="admin-sidebar">
-      <div class="admin-logo"><img src="../img/image2.png" alt="logo" /></div>
-      <nav>
-        <ul>
-          <li><a href="admin.php">← Volver al panel</a></li>
-        </ul>
-      </nav>
-    </aside>
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <div class="admin-logo"><img src="../img/image2.png" alt="logo" /></div>
+            <nav>
+                <ul><li><a href="admin.php">← Volver al panel</a></li></ul>
+            </nav>
+        </aside>
 
-    <main class="admin-main">
-      <header class="admin-header">
-        <h1>Editar película</h1>
-        <p>Actualiza la información o reemplaza archivos existentes.</p>
-      </header>
+        <main class="admin-main">
+            <header class="admin-header">
+                <h1>Editar película: <?=htmlspecialchars($peli['titulo'])?></h1>
+            </header>
 
-      <section class="panel-section">
-        <?php if (isset($_GET['error'])): ?>
-          <div class="error-message"><?= htmlspecialchars($_GET['error']) ?></div>
-        <?php endif; ?>
+            <section class="panel-section">
+                <?php if (isset($_GET['error'])): ?>
+                    <div class="error-message"><?= htmlspecialchars($_GET['error']) ?></div>
+                <?php endif; ?>
 
-        <form action="editar_pelicula.php?id=<?=htmlspecialchars($id)?>" method="POST" enctype="multipart/form-data" class="form-admin" id="editForm">
-          
-          <div class="form-row">
-            <label>Título</label>
-            <input type="text" name="titulo" required value="<?=htmlspecialchars($peli['titulo'])?>">
-          </div>
+                <form action="editar_pelicula.php?id=<?=htmlspecialchars($id)?>" method="POST" enctype="multipart/form-data" class="form-admin" id="editForm">
+                    
+                    <div class="form-row">
+                        <label>Título</label>
+                        <input type="text" name="titulo" required value="<?=htmlspecialchars($peli['titulo'])?>">
+                    </div>
 
-          <div class="form-row">
-            <label>Género</label>
-            <input type="text" name="genero" required placeholder="Ej: Acción, Drama, Comedia" value="<?=htmlspecialchars($peli['genero'])?>">
-          </div>
+                    <div class="form-row">
+                        <label>Géneros (Máx 3)</label>
+                        <div class="custom-dropdown" id="dropdownGeneros">
+                            <div class="dropdown-selected" onclick="toggleGenerosDropdown()">
+                                <?= empty($peli['genero']) ? 'Selecciona hasta 3 géneros' : htmlspecialchars($peli['genero']) ?>
+                            </div>
+                            <div class="dropdown-options" id="dropdownOptions">
+                                <?php if ($generos_result && $generos_result->num_rows > 0): ?>
+                                    <?php while($g = $generos_result->fetch_assoc()): ?>
+                                        <label class="dropdown-option">
+                                            <input type="checkbox" name="generos[]" value="<?= htmlspecialchars($g['nombre']) ?>"
+                                                <?= in_array($g['nombre'], $generos_actuales_array) ? 'checked' : '' ?>>
+                                            <span><?= htmlspecialchars($g['nombre']) ?></span>
+                                        </label>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <p>No hay géneros disponibles</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>Descripción</label>
+                        <textarea name="descripcion" rows="4"><?=htmlspecialchars($peli['descripcion'])?></textarea>
+                    </div>
 
-          <div class="form-row">
-            <label>Descripción</label>
-            <textarea name="descripcion" rows="4"><?=htmlspecialchars($peli['descripcion'])?></textarea>
-          </div>
+                    <div class="form-row">
+                        <label>Año</label>
+                        <input type="number" name="anio" min="1900" max="2100" required value="<?=htmlspecialchars($peli['anio'])?>">
+                    </div>
 
-          <div class="form-row">
-            <label>Año</label>
-            <input type="number" name="anio" min="1900" max="2100" required value="<?=htmlspecialchars($peli['anio'])?>">
-          </div>
+                    <div class="form-row">
+                        <label>Duración (HH:MM o MM:SS)</label>
+                        <input type="text" name="duracion" id="duracionInput" required placeholder="Ej: 01:44 o 10:30" 
+                                pattern="([0-1]?[0-9]|2[0-3]):[0-5][0-9]|[0-5]?[0-9]:[0-5][0-9]" 
+                                title="Formato HH:MM o MM:SS (ej: 01:44 o 10:30)"
+                                value="<?=htmlspecialchars($peli['duracion'])?>">
+                        <small id="durationInfo"></small>
+                    </div>
 
-          <div class="form-row">
-            <label>Duración (HH:MM)</label>
-            <input type="text" name="duracion" id="duracionInput" required placeholder="Ej: 01:44, 02:30" 
-                   pattern="([0-1]?[0-9]|2[0-3]):[0-5][0-9]" 
-                   title="Formato HH:MM (ej: 01:44, 02:30)" 
-                   value="<?=htmlspecialchars($peli['duracion'])?>">
-            <small>Formato: HH:MM (ej: 01:44 para 1 hora 44 minutos)</small>
-          </div>
+                    <div class="form-row current-poster">
+                        <label>Poster actual</label><br>
+                        <?php if ($peli['poster']): 
+                            $poster_src = filter_var($peli['poster'], FILTER_VALIDATE_URL) ? htmlspecialchars($peli['poster']) : 'uploads/posters/' . htmlspecialchars($peli['poster']); ?>
+                            <img src="<?= $poster_src ?>" class="mini-poster" id="currentPosterPreview">
+                        <?php else: ?>
+                            <span id="currentPosterPreview">Sin poster</span>
+                        <?php endif; ?>
+                    </div>
 
-          <!-- Poster actual -->
-          <div class="form-row current-poster">
-            <label>Poster actual</label><br>
-            <?php if ($peli['poster']): ?>
-              <?php if (filter_var($peli['poster'], FILTER_VALIDATE_URL)): ?>
-                <img src="<?=htmlspecialchars($peli['poster'])?>" class="mini-poster" id="posterPreview">
-                <p><small>URL: <?= htmlspecialchars($peli['poster']) ?></small></p>
-              <?php else: ?>
-                <img src="uploads/posters/<?=htmlspecialchars($peli['poster'])?>" class="mini-poster" id="posterPreview">
-              <?php endif; ?>
-            <?php else: ?>
-              <span class="no-poster">Sin poster</span>
-            <?php endif; ?>
-          </div>
+                    <div class="form-row">
+                        <label>Actualizar poster (URL)</label>
+                        <input type="url" name="poster_url" placeholder="URL del poster" onchange="document.querySelector('[name=poster_file]').value = ''">
+                    </div>
+                    <div class="form-row">
+                        <label>Actualizar poster (Archivo)</label>
+                        <input type="file" name="poster_file" accept="image/*" onchange="document.querySelector('[name=poster_url]').value = ''">
+                    </div>
 
-          <!-- Opciones para nuevo poster -->
-          <div class="form-row">
-            <label>Actualizar poster</label>
-            <div class="poster-options">
-              <div class="poster-option">
-                <label>URL del poster</label>
-                <input type="url" name="poster_url" placeholder="https://ejemplo.com/poster.jpg" 
-                       onchange="document.getElementById('posterFile').value = ''">
-              </div>
-              <div class="poster-option">
-                <label>Subir archivo</label>
-                <input type="file" name="poster_file" id="posterFile" accept="image/*" 
-                       onchange="previewPoster(event); document.querySelector('[name=poster_url]').value = ''">
-              </div>
-            </div>
-          </div>
+                    <div class="form-row">
+                        <label>Video actual</label><br>
+                        <?php if ($peli['video']): ?>
+                            <video src="uploads/videos/<?=htmlspecialchars($peli['video'])?>" class="preview-video" controls id="currentVideoPreview"></video>
+                        <?php else: ?>
+                            <span>Sin video</span>
+                        <?php endif; ?>
+                    </div>
 
-          <!-- Video actual -->
-          <div class="form-row">
-            <label>Video actual</label><br>
-            <?php if ($peli['video']): ?>
-              <video src="uploads/videos/<?=htmlspecialchars($peli['video'])?>" width="300" controls class="preview-video"></video>
-            <?php else: ?>
-              <span>Sin video</span>
-            <?php endif; ?>
-          </div>
+                    <div class="form-row">
+                        <label>Nuevo video (opcional)</label>
+                        <input type="file" name="video" id="videoFile" accept="video/*" onchange="previewVideoAndGetDuration(event)">
+                        <video id="videoPreview" class="preview-video" controls style="display:none;"></video>
+                    </div>
 
-          <!-- Nuevo video -->
-          <div class="form-row">
-            <label>Nuevo video (opcional)</label>
-            <input type="file" name="video" id="videoFile" accept="video/*" onchange="previewVideoAndGetDuration(event)">
-            <video id="videoPreview" class="preview-video" controls style="display:none;"></video>
-            <div id="durationInfo"></div>
-          </div>
+                    <div class="form-row actions">
+                        <button class="btn-primary" type="submit">Guardar cambios</button>
+                        <a href="admin.php" class="btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
 
-          <div class="form-row actions">
-            <button class="btn-primary" type="submit">Guardar cambios</button>
-            <a href="admin.php" class="btn-secondary">Cancelar</a>
-          </div>
-        </form>
-      </section>
-    </main>
-  </div>
+    <script>
+        // Función para el dropdown de géneros
+        function toggleGenerosDropdown() {
+            document.getElementById("dropdownGeneros").classList.toggle("active");
+        }
 
-<script>
-function previewPoster(e) {
-  const [file] = e.target.files;
-  if (!file) return;
-  const preview = document.getElementById('posterPreview');
-  if (preview) {
-    preview.src = URL.createObjectURL(file);
-    preview.style.display = 'block';
-  }
-}
+        // Cierra el menú si haces clic fuera
+        document.addEventListener("click", function(e) {
+            const dropdown = document.getElementById("dropdownGeneros");
+            if (dropdown && !dropdown.contains(e.target)) dropdown.classList.remove("active");
+        });
 
-function previewVideoAndGetDuration(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  const videoPreview = document.getElementById('videoPreview');
-  const durationInfo = document.getElementById('durationInfo');
-  const duracionInput = document.getElementById('duracionInput');
-  
-  // Mostrar preview del video
-  videoPreview.src = URL.createObjectURL(file);
-  videoPreview.style.display = 'block';
-  durationInfo.textContent = 'Calculando duración...';
-  durationInfo.className = 'duration-info';
-  
-  // Cuando los metadatos del video estén cargados, obtener la duración
-  videoPreview.onloadedmetadata = function() {
-    const duration = videoPreview.duration; // Duración en segundos
-    if (duration && !isNaN(duration)) {
-      // Convertir segundos a formato HH:MM o MM:SS según la duración
-      let formattedDuration = '';
-      let displayText = '';
-      
-      if (duration >= 3600) {
-        // Más de 1 hora: formato HH:MM
-        const hours = Math.floor(duration / 3600);
-        const minutes = Math.floor((duration % 3600) / 60);
-        formattedDuration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        displayText = `Duración detectada: ${formattedDuration} (${hours}h ${minutes}m)`;
-      } else if (duration >= 60) {
-        // Menos de 1 hora pero más de 1 minuto: formato MM:SS
-        const minutes = Math.floor(duration / 60);
-        const seconds = Math.floor(duration % 60);
-        formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        displayText = `Duración detectada: ${formattedDuration} (${minutes}m ${seconds}s)`;
-      } else {
-        // Menos de 1 minuto: formato 00:SS
-        const seconds = Math.floor(duration);
-        formattedDuration = `00:${seconds.toString().padStart(2, '0')}`;
-        displayText = `Duración detectada: ${formattedDuration} (${seconds} segundos)`;
-      }
-      
-      // Actualizar el campo de duración
-      duracionInput.value = formattedDuration;
-      
-      // Mostrar información adicional
-      durationInfo.textContent = displayText;
-      durationInfo.className = 'duration-success';
-      
-      console.log(`Duración del video: ${duration} segundos -> ${formattedDuration}`);
-    } else {
-      durationInfo.textContent = 'No se pudo detectar la duración del video';
-      durationInfo.className = 'duration-error';
-    }
-  };
-  
-  videoPreview.onerror = function() {
-    durationInfo.textContent = 'Error al cargar el video. Asegúrate de que sea un formato válido.';
-    durationInfo.className = 'duration-error';
-  };
-}
+        // Actualiza el texto del campo y limita la selección a 3 géneros
+        document.addEventListener("change", function(e) {
+            if (e.target.name === "generos[]") {
+                const checked = document.querySelectorAll('input[name="generos[]"]:checked');
+                if (checked.length > 3) {
+                    e.target.checked = false;
+                    alert("Solo puedes seleccionar hasta 3 géneros.");
+                    return;
+                }
+                const selectedNames = Array.from(checked).map(cb => cb.value);
+                document.querySelector(".dropdown-selected").textContent =
+                    selectedNames.length > 0 ? selectedNames.join(", ") : "Selecciona hasta 3 géneros";
+            }
+        });
 
-// Validación del formato de duración mejorada
-document.getElementById('editForm').addEventListener('submit', function(e) {
-  const duracionInput = document.getElementById('duracionInput');
-  const duracion = duracionInput.value.trim();
-  
-  // Permitir tanto HH:MM como MM:SS
-  if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(duracion) && 
-      !/^[0-5]?[0-9]:[0-5][0-9]$/.test(duracion)) {
-    e.preventDefault();
-    alert('Por favor ingresa la duración en formato HH:MM o MM:SS (ej: 01:44 para 1h44m o 10:30 para 10m30s)');
-    duracionInput.focus();
-    return false;
-  }
-  
-  return true;
-});
+        // Función para la vista previa del video y obtener duración (copiada de subir_pelicula.php)
+        function previewVideoAndGetDuration(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const videoPreview = document.getElementById('videoPreview');
+            const durationInfo = document.getElementById('durationInfo');
+            const duracionInput = document.getElementById('duracionInput');
+            
+            // Ocultar el video actual al subir uno nuevo
+            document.getElementById('currentVideoPreview').style.display = 'none';
 
-// También actualizamos el pattern del input para aceptar ambos formatos
-document.addEventListener('DOMContentLoaded', function() {
-  const duracionInput = document.getElementById('duracionInput');
-  if (duracionInput) {
-    duracionInput.pattern = '([0-1]?[0-9]|2[0-3]):[0-5][0-9]|[0-5]?[0-9]:[0-5][0-9]';
-    duracionInput.title = 'Formato HH:MM o MM:SS (ej: 01:44 para 1h44m o 10:30 para 10m30s)';
-  }
-});
-</script>
+            videoPreview.src = URL.createObjectURL(file);
+            videoPreview.style.display = 'block';
+            durationInfo.textContent = 'Calculando duración...';
+            durationInfo.className = 'duration-info';
+            
+            videoPreview.onloadedmetadata = function() {
+                const duration = videoPreview.duration;
+                if (duration && !isNaN(duration)) {
+                    let formattedDuration = '';
+                    
+                    if (duration >= 3600) {
+                        const hours = Math.floor(duration / 3600);
+                        const minutes = Math.floor((duration % 3600) / 60);
+                        formattedDuration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    } else if (duration >= 60) {
+                        const minutes = Math.floor(duration / 60);
+                        const seconds = Math.floor(duration % 60);
+                        formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    } else {
+                        const seconds = Math.floor(duration);
+                        formattedDuration = `00:${seconds.toString().padStart(2, '0')}`;
+                    }
+                    
+                    duracionInput.value = formattedDuration;
+                    durationInfo.textContent = `Duración detectada: ${formattedDuration}. Campo actualizado.`;
+                    durationInfo.className = 'duration-success';
+                } else {
+                    durationInfo.textContent = 'No se pudo detectar la duración del video.';
+                    durationInfo.className = 'duration-error';
+                }
+            };
+        }
+
+        // Inicializar el texto del dropdown con los géneros seleccionados al cargar
+        document.addEventListener('DOMContentLoaded', () => {
+            const checked = document.querySelectorAll('input[name="generos[]"]:checked');
+            const selectedNames = Array.from(checked).map(cb => cb.value);
+            const dropdownSelected = document.querySelector(".dropdown-selected");
+            if (dropdownSelected) {
+                dropdownSelected.textContent = selectedNames.length > 0 ? selectedNames.join(", ") : "Selecciona hasta 3 géneros";
+            }
+        });
+    </script>
 </body>
 </html>

@@ -115,20 +115,23 @@ body {
 }
 
 .btn-small {
-  padding: 6px 10px;
+  padding: 5px 5px;
   border-radius: 4px;
   text-decoration: none;
   font-size: 13px;
-  margin-right: 5px;
+  margin-left: 3px;
   background: #333;
   color: #fff;
   transition: 0.3s;
 }
 
 .btn-edit { background: #f50a0a; }
-.btn-delete { background: #e50914; }
+.btn-delete { 
+  padding: 1px 8px;
+  background: #e50914; 
+}
 
-.btn-edit:hover { background: #ec2e0d; }
+.btn-edit:hover { background: #911c08; }
 .btn-delete:hover { background: #b0060e; }
 
 /* Tabla */
@@ -649,4 +652,91 @@ body {
   .highlights-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==== Dropdown Géneros ==== */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: border 0.3s;
+}
+
+.custom-dropdown:hover {
+  border-color: #e50914;
+}
+
+.dropdown-selected {
+  padding: 10px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdown-selected::after {
+  content: "▼";
+  font-size: 12px;
+  color: #aaa;
+  margin-left: 10px;
+  transition: transform 0.3s;
+}
+
+.custom-dropdown.active .dropdown-selected::after {
+  transform: rotate(-180deg);
+  color: #e50914;
+}
+
+.dropdown-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-top: 4px;
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.custom-dropdown.active .dropdown-options {
+  display: block;
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #333;
+  transition: background 0.2s;
+}
+
+.dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.dropdown-option:hover {
+  background: #333;
+}
+
+.dropdown-option input[type="checkbox"] {
+  display: none;
+}
+
+.dropdown-option span {
+  flex: 1;
+}
+
+.dropdown-option input:checked + span {
+  color: #e50914;
+  font-weight: 600;
 }

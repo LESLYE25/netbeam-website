@@ -40,15 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($login_exitoso) {
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nombre'] = $usuario['nombre'];
+            // Guardar el rol usando la clave "rol" (coincide con la columna en BD)
+            $_SESSION['rol'] = $usuario['rol'];
+            // Mantener la clave antigua por compatibilidad si existe código que la usa
             $_SESSION['usuario_rol'] = $usuario['rol'];
             
-            // Redirigir según el rol
-            if ($usuario['rol'] === 'admin') {
-                // Verificar si el archivo existe, si no redirigir a una página por defecto
-                header("Location: admin/admin.php");
-            } else {
-                header("Location: home.php");
-            }
+            // Redirigir a la página principal (home) para que el admin pueda ver el botón
+            // El enlace al panel de administración estará disponible en el header si el rol es 'admin'
+            header("Location: home.php");
             exit();
         } else {
             $error = "Contraseña incorrecta";

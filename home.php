@@ -8,11 +8,9 @@ if (!isset($_SESSION['usuario_id'])) {
     exit();
 }
 
-// Si el usuario es admin, redirigir al panel de administración
-if (isset($_SESSION['usuario_rol']) && $_SESSION['usuario_rol'] === 'admin') {
-    header("Location: admin/admin.php");
-    exit();
-}
+// Nota: No redirigimos automáticamente a admin desde aquí.
+// La visibilidad del enlace al panel de administración se controla en la plantilla
+// según el rol de la sesión para que el usuario admin pueda ver el botón.
 
 // VERIFICAR SI EL USUARIO TIENE PREFERENCIAS CONFIGURADAS
 $usuario_id = $_SESSION['usuario_id'];
@@ -107,6 +105,54 @@ $stmt_usuario->execute();
 $result_usuario = $stmt_usuario->get_result();
 $usuario = $result_usuario->fetch_assoc();
 $stmt_usuario->close();
+
+// Normalizar rol en una variable para usar en la plantilla
+$sessionRol = null;
+if (isset($_SESSION['rol'])) $sessionRol = $_SESSION['rol'];
+elseif (isset($_SESSION['usuario_rol'])) $sessionRol = $_SESSION['usuario_rol'];
+// mantener en minúsculas para comparaciones
+$sessionRol = $sessionRol ? strtolower($sessionRol) : null;
+
+// --- Comprobación adicional: sincronizar con la base de datos por seguridad ---
+// Si el rol detectado no parece correcto, leer el rol real desde la BD por el usuario en sesión
+if (isset($_SESSION['usuario_id'])) {
+    $checkStmt = $conn->prepare("SELECT rol FROM usuarios WHERE id = ? LIMIT 1");
+    $checkStmt->bind_param('i', $_SESSION['usuario_id']);
+    $checkStmt->execute();
+    $checkRes = $checkStmt->get_result();
+    if ($checkRes && $checkRes->num_rows === 1) {
+        $row = $checkRes->fetch_assoc();
+        $rolEnBD = strtolower($row['rol']);
+        // Si hay discrepancia, sincronizamos la variable y la sesión
+        if ($rolEnBD !== $sessionRol) {
+            // Actualizar variable para uso inmediato
+            $sessionRol = $rolEnBD;
+            // Actualizar sesión para futuras peticiones
+            $_SESSION['rol'] = $rolEnBD;
+            $_SESSION['usuario_rol'] = $rolEnBD;
+        }
+    }
+    $checkStmt->close();
+}
+
+    // Depuración temporal: mostrar datos de sesión y rol en BD si se pide con ?debug_session=1
+    if (isset($_GET['debug_session']) && $_GET['debug_session'] == '1') {
+        echo '<div style="position:fixed; right:10px; top:10px; z-index:9999; background:#111; color:#fff; padding:10px; border:1px solid #333; font-size:12px; max-width:320px;">';
+        echo '<strong>DEBUG SESSION</strong><br>';
+        echo '<pre style="white-space:pre-wrap; color:#ddd;">' . htmlspecialchars(print_r($_SESSION, true)) . '</pre>';
+        if (isset($_SESSION['usuario_id'])) {
+            $q = $conn->prepare('SELECT id, nombre, rol FROM usuarios WHERE id = ?');
+            $q->bind_param('i', $_SESSION['usuario_id']);
+            $q->execute();
+            $r = $q->get_result();
+            if ($r && $r->num_rows === 1) {
+                $userRow = $r->fetch_assoc();
+                echo '<div style="margin-top:6px; color:#9f9;">Rol en BD: ' . htmlspecialchars($userRow['rol']) . '</div>';
+            }
+            $q->close();
+        }
+        echo '</div>';
+    }
 
 // Obtener preferencias del usuario actual
 $sql_preferencias = "SELECT genero FROM preferencias WHERE usuario_id = ?";
@@ -265,6 +311,62 @@ header img.logo {
     height: 30px;
 }
 
+/* Contenedor izquierdo (logo + buscador) */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Estilos del buscador en el header */
+.header-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header-search input[type="text"] {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--netbeam-white);
+    padding: 8px 10px;
+    border-radius: 4px;
+    width: 260px;
+    transition: background 0.15s, width 0.15s;
+}
+
+.header-search input[type="text"]::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.header-search button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px 8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.header-search button svg { width:20px; height:20px; display:block }
+
+/* Botón para ir al menú de administración (visible para admins) */
+.btn-admin-menu {
+    background: #000;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-left: 8px;
+    font-size: 14px;
+}
+.btn-admin-menu:hover { background: #111; }
+
+@media (max-width: 768px) {
+    .header-search { display: none; }
+}
+
 .nav-links {
     display: flex;
     gap: 20px;
@@ -313,6 +415,8 @@ header img.logo {
     justify-content: center;
     font-weight: bold;
 }
+
+.preferences-indicator { cursor: pointer; }
 
 /* Menú desplegable del usuario */
 .user-dropdown {
@@ -1276,26 +1380,45 @@ header img.logo {
 </style>
 </head>
 <body>
-
+<a href="login.php" class="boton-iniciar-sesion">
+    ¡Hola, inicia sesión!
+</a>
 <header>
-    <img class="logo" src="img/image2.png" alt="Logo">
+    <div class="header-left">
+        <img class="logo" src="img/image2.png" alt="Logo">
+        <!-- Buscador similar al de admin.php -->
+        <form method="GET" class="header-search" action="busqueda.php">
+            <input type="text" name="buscar" placeholder="Buscar título..." value="<?= isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : '' ?>">
+            <button type="submit" aria-label="Buscar">
+                <!-- Lupa blanca con borde negro -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6" fill="none" stroke="#ffffff" stroke-width="1.8" />
+                    <line x1="15.5" y1="15.5" x2="21" y2="21" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+            </button>
+        </form>
+    </div>
     <div class="nav-links">
         <a href="#" class="active">Inicio</a>
         <a href="#" id="miListaLink">Mi lista</a>
     </div>
     <div class="usuario-menu">
-        <div class="usuario" onclick="toggleUserMenu(event)">
+        <div class="usuario">
             <div class="usuario-avatar"><?= substr($usuario['nombre'], 0, 1) ?></div>
             <?= $usuario['nombre'] ?>
             <?php if(count($preferencias) > 0): ?>
-                <span class="preferences-indicator"><?= count($preferencias) ?> pref.</span>
+                <span class="preferences-indicator" id="preferencesIndicator" role="button" aria-haspopup="true" aria-expanded="false"><?= count($preferencias) ?> pref.</span>
             <?php endif; ?>
-            <span>▼</span>
         </div>
         <div class="user-dropdown" id="userDropdown">
             <div class="user-dropdown-item" onclick="manageProfiles()">
                 <i>⚙️</i> Gestionar preferencias
             </div>
+            <?php if ($sessionRol === 'admin'): ?>
+            <div class="user-dropdown-item" onclick="window.location.href='admin/admin.php'">
+                <i>🛠️</i> Panel de administración
+            </div>
+            <?php endif; ?>
             <div class="user-dropdown-divider"></div>
             <div class="user-dropdown-item" onclick="logout()">
                 <i>🚪</i> Cerrar sesión
@@ -1404,7 +1527,7 @@ header img.logo {
                         $poster_src = "admin/uploads/posters/" . $p['poster'];
                     }
                     ?>
-                    <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/350x300/333/fff?text=Poster+No+Disponible'">
+                    <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                     <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                             onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                             title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1438,7 +1561,7 @@ header img.logo {
                     $poster_src = "admin/uploads/posters/" . $p['poster'];
                 }
                 ?>
-                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                 <button class="lista-btn en-lista" onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" title="Quitar de Mi Lista">✓</button>
                 <div class="card-overlay">
                     <div class="card-title"><?= $p['titulo'] ?></div>
@@ -1476,7 +1599,7 @@ header img.logo {
                     $poster_src = "admin/uploads/posters/" . $p['poster'];
                 }
                 ?>
-                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                         title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1509,7 +1632,7 @@ header img.logo {
                     $poster_src = "admin/uploads/posters/" . $p['poster'];
                 }
                 ?>
-                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                         title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1547,7 +1670,7 @@ header img.logo {
                     $poster_src = "admin/uploads/posters/" . $p['poster'];
                 }
                 ?>
-                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='https://via.placeholder.com/180x270/333/fff?text=Poster+No+Disponible'">
+                <img src="<?= $poster_src ?>" alt="<?= $p['titulo'] ?>" onerror="this.src='img/poster_placeholder.svg'">
                 <button class="lista-btn <?= isset($peliculas_en_lista[$p['id']]) ? 'en-lista' : '' ?>" 
                         onclick="event.stopPropagation(); toggleLista(<?= $p['id'] ?>, this)" 
                         title="<?= isset($peliculas_en_lista[$p['id']]) ? 'Quitar de Mi Lista' : 'Agregar a Mi Lista' ?>">
@@ -1577,7 +1700,7 @@ header img.logo {
             <p class="modal-description" id="modalDescription"></p>
             
             <div class="modal-buttons">
-                <button class="btn btn-primary">▶ Reproducir</button>
+                <button class="btn btn-primary" id="modalPlayBtn">▶ Reproducir</button>
                 <button class="modal-lista-btn" id="modalListaBtn">
                     <span id="listaIcon">+</span> Mi lista
                 </button>
@@ -1609,6 +1732,18 @@ header img.logo {
             </div>
         </div>
     </div>
+
+                <!-- MODAL REPRODUCTOR DE VIDEO -->
+     <div id="playerModal" class="modal" aria-hidden="true">
+             <div class="modal-content" style="max-width: 900px; width: 90%; max-height: 90vh; padding:0; background:transparent; box-shadow:none;">
+                <div style="position:relative; width:100%;">
+                  <button class="modal-close" id="playerCloseBtn" style="position:absolute; top:10px; right:10px; z-index:3000;">×</button>
+                      <div style="background: #000; border-radius:8px; overflow:hidden;">
+                  <video id="playerVideo" controls style="width:100%; height:480px; max-height:70vh; background:#000; display:block;" playsinline webkit-playsinline></video>
+              </div>
+         </div>
+       </div>
+      </div>
 </div>
 
 <script>
@@ -1632,6 +1767,7 @@ let bannerInterval;
 document.addEventListener('DOMContentLoaded', function() {
     initializeCarruseles();
     initializeBanner();
+    console.log('DEBUG: sessionRol detectado en PHP: ', <?= json_encode($sessionRol) ?>);
 });
 
 // ========== BANNER CARRUSEL ==========
@@ -1899,6 +2035,19 @@ function openModal(movie, event) {
     setTimeout(() => {
         modal.classList.add('active');
     }, 10);
+
+    // Configurar disponibilidad del botón Reproducir según existencia del video
+    const playBtn = document.getElementById('modalPlayBtn');
+    if (playBtn) {
+        // Algunas filas pasan el campo 'video' como null o empty
+        if (movie.video && String(movie.video).trim() !== '') {
+            playBtn.disabled = false;
+            playBtn.classList.remove('disabled');
+        } else {
+            playBtn.disabled = true;
+            playBtn.classList.add('disabled');
+        }
+    }
 }
 
 // Función para cargar recomendaciones similares
@@ -2033,6 +2182,9 @@ function toggleUserMenu(event) {
     
     const dropdown = document.getElementById('userDropdown');
     dropdown.classList.toggle('active');
+    // update aria-expanded
+    const pref = document.getElementById('preferencesIndicator');
+    if (pref) pref.setAttribute('aria-expanded', dropdown.classList.contains('active') ? 'true' : 'false');
 }
 
 // Cerrar menú desplegable al hacer clic fuera
@@ -2040,6 +2192,19 @@ document.addEventListener('click', function(event) {
     const dropdown = document.getElementById('userDropdown');
     if (!event.target.closest('.usuario-menu')) {
         dropdown.classList.remove('active');
+    }
+});
+
+// Abrir el dropdown al hacer click en el indicador de preferencias
+document.addEventListener('DOMContentLoaded', function() {
+    const pref = document.getElementById('preferencesIndicator');
+    if (pref) {
+        pref.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('active');
+            pref.setAttribute('aria-expanded', dropdown.classList.contains('active') ? 'true' : 'false');
+        });
     }
 });
 
@@ -2173,6 +2338,102 @@ document.addEventListener('click', function(event) {
         event.stopPropagation();
         event.preventDefault();
     }
+});
+</script>
+
+<script>
+// PLAYER MODAL - abrir desde el movieModal y reproducir el archivo asociado
+const playerModal = document.getElementById('playerModal');
+const playerVideo = document.getElementById('playerVideo');
+const playerCloseBtn = document.getElementById('playerCloseBtn');
+
+function openPlayerModal() {
+    if (!peliculaActual) return;
+
+    // Determinar la ruta del video
+    let videoSrc = peliculaActual.video || peliculaActual.videofile || peliculaActual.ruta_video || '';
+    if (!videoSrc) {
+        // Si no hay video asociado, mostrar alerta y no abrir
+        alert('No se encontró el archivo de video para esta película.');
+        return;
+    }
+
+    // Si el valor no es una URL completa, asumimos que está en admin/uploads/videos/
+    if (!videoSrc.startsWith('http') && !videoSrc.startsWith('//') && !videoSrc.startsWith('/')) {
+        videoSrc = 'admin/uploads/videos/' + videoSrc;
+    }
+
+    // Establecer la fuente y reproducir automáticamente cuando esté lista
+    playerVideo.src = videoSrc;
+    playerVideo.load();
+
+    // Mostrar el modal
+    playerModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Intentar reproducir cuando los metadatos estén cargados
+    playerVideo.addEventListener('canplay', tryAutoPlay);
+    playerVideo.addEventListener('error', onPlayerError);
+}
+
+function tryAutoPlay() {
+    // Quitar el listener para no repetir
+    playerVideo.removeEventListener('canplay', tryAutoPlay);
+    // Intentar reproducir (puede ser bloqueado por el navegador si no hay interacción)
+    const playPromise = playerVideo.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(err => {
+            // Si está bloqueado, dejar controles visibles para que el usuario inicie
+            console.warn('Auto-play bloqueado por el navegador:', err);
+        });
+    }
+}
+
+function onPlayerError() {
+    alert('Error al cargar el video. Comprueba que el archivo exista en admin/uploads/videos/ y que el formato sea compatible (mp4/webm/ogg).');
+}
+
+function closePlayerModal() {
+    // Pausar y limpiar
+    try { playerVideo.pause(); } catch(e){}
+    playerVideo.removeAttribute('src');
+    playerVideo.load();
+
+    playerModal.classList.remove('active');
+    setTimeout(() => {
+        playerModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }, 150);
+}
+
+// Asociar eventos
+// Mover la asociación del listener para cuando el DOM esté completamente listo
+document.addEventListener('DOMContentLoaded', function() {
+    const playBtn = document.getElementById('modalPlayBtn');
+    if (playBtn) {
+        playBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('modalPlayBtn clicked, peliculaActual:', peliculaActual);
+            openPlayerModal();
+        });
+    } else {
+        console.warn('modalPlayBtn no se encontró en el DOM');
+    }
+});
+
+playerCloseBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closePlayerModal();
+});
+
+// Cerrar al hacer click fuera
+playerModal.addEventListener('click', function(event) {
+    if (event.target === this) closePlayerModal();
+});
+
+// Evitar que click en el contenido cierre
+document.querySelector('#playerModal .modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
 });
 </script>
 

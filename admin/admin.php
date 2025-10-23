@@ -21,7 +21,7 @@ if (!empty($_GET['genero'])) {
 $condicion = count($where) ? "WHERE " . implode(' AND ', $where) : "";
 
 // --- Paginación ---
-$por_pagina = 6;
+$por_pagina = 8;
 $pagina_actual = isset($_GET['pagina']) ? max(1, intval($_GET['pagina'])) : 1;
 $offset = ($pagina_actual - 1) * $por_pagina;
 
@@ -54,6 +54,7 @@ $generos = $conn->query("SELECT DISTINCT genero FROM peliculas ORDER BY genero A
           <li><a href="dashboard.php">Dashboard</a></li>
           <li><a href="admin.php" class="active">Lista de películas</a></li>
           <li><a href="subir_pelicula.php">Añadir película</a></li>
+          <li><a href="http://localhost:8000/home.php">Volver al menú</a></li>
           <li><a href="../logout.php">Cerrar sesión</a></li>
         </ul>
       </nav>

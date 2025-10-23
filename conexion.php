@@ -3,9 +3,10 @@ $host = "localhost";
 $user = "root"; // tu usuario de phpMyAdmin
 $pass = "";     // tu contraseña de phpMyAdmin (déjalo vacío si no tienes)
 $db   = "netflix_clone";
+$port = 3307;   // Asegúrate de especificar el puerto 3307
 
 // Crear conexión
-$conn = new mysqli($host, $user, $pass, $db);
+$conn = new mysqli($host, $user, $pass, $db, $port);
 
 // Verificar conexión
 if ($conn->connect_error) {
