@@ -9,17 +9,22 @@ body {
     color: white;
     background: black;
     background-image: linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)), url("../img/cuenta/background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
 }
 
 /* --------------------------HEADER--------------------------------------------------------- */
 
-.contenido{
+.contenido {
     width: 100%;
     height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-nav .logo{
-    position: relative;
+nav .logo {
     display: flex;
     padding-top: 25px;
     padding-left: 3%;
@@ -30,160 +35,160 @@ nav .logo{
 
 /* ----------------------------CAJA DEL FORMULARIO------------------------------------------- */
 
-.caja{
+.caja {
     position: relative;
     background-color: rgba(0, 0, 0, 0.7);
     color: white;
     width: 40%;
-    justify-content: center;
     max-width: 600px;
-    border-radius: 3px;
+    border-radius: 5px;
     align-self: center;
-    padding-top: 50px;
-    padding-bottom: 30px;
-    padding-left: 70px;
-    padding-right: 70px;
-    margin: 2% 32% 70px 32%;
+    padding: 50px 70px 30px 70px;
+    margin: auto;
+    box-shadow: 0 0 15px rgba(255,255,255,0.1);
 }
 
-.caja h2{
+.caja h2 {
     font-size: 30px;
     margin-bottom: 30px;
+    text-align: center;
 }
 
-.caja .form{
+.caja .form {
     display: flex;
     flex-direction: column;
 }
 
-.caja .form input{
+.caja .form input {
     border: none;
     padding: 20px;
     margin-bottom: 15px;
     font-size: 16px;
     background-color: #333;
     border-radius: 5px;
-}
-/* Esto es para que el color de lo que escribamos y se quede plasmado en el formulario sea con las
-letras en blanco */
-input, select,textarea {
-    color: white;
-}
-/* Esto es para que el color de lo que escribamos en el momento durante el que escribimos,
-sea con las letras en blanco */
-textarea:focus, input:focus {
     color: white;
 }
 
-.caja button{
+input, select, textarea {
+    color: white;
+}
+textarea:focus, input:focus {
+    color: white;
+    outline: 2px solid #e50914;
+}
+
+.caja button {
     border: none;
-    padding: 15px 35%;
-    margin-top: 30px;
-    margin-bottom: 20px;
+    padding: 15px;
     background-color: #e50914;
     color: white;
     font-size: 16px;
     font-weight: bold;
     border-radius: 5px;
+    transition: 0.3s;
+    cursor: pointer;
 }
 
-.caja .checkbox{
-    display: flex;
-    align-items: center;
-    color: #b3b3b3;
-    font-size: 14px;
-    justify-content: space-between;
-    margin: 10px 0px;
-    margin-bottom: 50px;
+.caja button:hover {
+    background-color: #f40612;
 }
 
-.recordar{
-    display: inline-flex;
+/* ----------------------------BOTÓN VOLVER------------------------------------------- */
+.btn-volver {
+    display: inline-block;
+    margin-top: 25px;
+    background-color: transparent;
+    color: #fff;
+    border: 2px solid #e50914;
+    padding: 10px 25px;
+    border-radius: 5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: 0.3s;
+    cursor: pointer;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
 }
 
-.recordar label{
-    margin-left: 3px;
+.btn-volver:hover {
+    background-color: #e50914;
 }
 
-#checkbox1 {
-    accent-color: #b3b3b3; /* Esto consigue que al hacer un click en check, podamos ver el check en gris al ponerse el tick */
+
+/* -----------------------SUBSCRIPCIÓN------------------------------------------- */
+
+.caja .subscripcion {
+    text-align: center;
+    margin-top: 20px;
 }
 
-.caja .checkbox div p {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 14px;
-}
-
-.caja .checkbox div p:hover {
-    text-decoration: underline;
-}
-
-.caja .subscripcion p{
-    margin: 15px 0px 0 0px;
+.caja .subscripcion p {
     color: gray;
 }
 
-.caja .subscripcion p span{
+.caja .subscripcion p span {
     color: white;
     font-weight: 600;
 }
 
-.caja .subscripcion p+p{
-    font-size: 13px;
-}
-
-.caja .subscripcion a{
+.caja .subscripcion a {
     color: #0071eb;
-    font-weight: normal;
     text-decoration: none;
 }
 
-.caja .subscripcion a:hover{
+.caja .subscripcion a:hover {
     text-decoration: underline;
 }
 
-
-/* -----------------------ARREGLOS DE CSS PARA PANTALLAS PEQUEÑAS--------------------------------------------------------------- */
-@media only screen and (max-width:600px) {
-    /* -----------------------ARREGLOS DEL HEADER Y BODY--------------------------------------- */
-    body{
-        background-image: none;
+/* -----------------------RESPONSIVE------------------------------------------- */
+@media only screen and (max-width: 768px) {
+    .caja {
+        width: 80%;
+        padding: 40px 30px;
+        margin: 10% auto;
     }
-    
-    nav .logo {
-        padding-left: 3%;
-        padding-top: 3%;
-        width: 40%;
+
+    .caja h2 {
+        font-size: 26px;
+    }
+
+    .caja button {
+        padding: 12px;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    body {
+        background-image: linear-gradient(rgba(0,0,0,0.7),rgba(0,0,0,0.7)), url("../img/cuenta/background.jpg");
+        background-size: cover;
+        background-position: center;
     }
 
     .caja {
-        width: 105%;
-        padding-top: 5%;
-        padding-bottom: 3%;
-        padding-left: 3%;
-        padding-right: 3%px;
-        margin: 2% 3% 2% 3%;
+        width: 70%;
+        padding: 30px 20px;
+        margin: 20% auto;
     }
 
-    
+    .caja h2 {
+        font-size: 20px;
+    }
+
     .caja .form input {
-        padding: 15px;
-        margin-bottom: 3%;
-        }
+        padding: 13px;
+        font-size: 12px;
+    }
 
     .caja button {
-        padding: 15px 37%;
+        padding: 10px;
+        font-size: 12px;
     }
 
-    
-    .caja .subscripcion{
-        margin-top: -20px;
+    .btn-volver {
+        font-size: 12px;
+        padding: 8px 16px;
+        
     }
-    
-    .caja .subscripcion p span {
-        font-weight: 300;        
-    }
-    
 }

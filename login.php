@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="contenido">
         <nav>
-            <img class="logo" src="./img/image2.png" alt="FlixterLogo" />
+            <a href="index.php"><img class="logo" src="img/image2.png" alt="Flixter"></a>
         </nav>
         <div class="caja">
             <h2>Iniciar sesión</h2>
@@ -109,6 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="registro.php"><span>Registrate ya.</span></a>
                 </p>
             </div>
+
+            <a href="index.php" class="btn-volver">← Volver</a>
         </div>
     </div>
 </body>

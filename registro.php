@@ -27,6 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <title>Registro exitoso</title>
+            <link rel="stylesheet" href="">
             <style>
                 /* Fondo totalmente negro, bordes blancos y tonos rojos */
                 :root{--nb-red:#e50914;--nb-dark:#000}
@@ -113,7 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 <div class="contenido">
     <nav>
-        <img class="logo" src="./img/image2.png" alt="netbeamLogo" />
+        <a href="index.php"><img class="logo" src="img/image2.png" alt="Flixter"></a>
     </nav>
     <div class="caja">
         <h2>Registrarse</h2>

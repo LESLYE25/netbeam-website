@@ -153,7 +153,7 @@ if (isset($_POST['valorar_pelicula'])) {
 :root{--Flixter-dark:#141414;--Flixter-white:#fff;--Flixter-light-gray:#b3b3b3;--Flixter-red:#e50914}
 body{background:var(--Flixter-dark);color:var(--Flixter-white);font-family:Arial,Helvetica,sans-serif;margin:0;padding:0}
 .header{height:68px;display:flex;align-items:center;padding:0 4%;gap:18px;border-bottom:1px solid rgba(255,255,255,0.03)}
-.header img.logo{height:30px}
+.header img.logo{height:60px}
 .header .header-search{display:flex;align-items:center;gap:6px}
 .header .header-search input{padding:8px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.06);color:var(--Flixter-white)}
 .header .header-search select{padding:8px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);background:#000;color:#fff;cursor:pointer}
